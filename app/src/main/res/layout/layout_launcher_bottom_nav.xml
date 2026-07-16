@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_bottom_nav"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1A1F2B"
+    android:paddingHorizontal="20dp">
+
+    <!-- Group TRÁI: Home & Apps -->
+    <LinearLayout
+        android:id="@+id/group_nav"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentLeft="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/btn_nav_home"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:src="@drawable/ic_home"
+            android:paddingVertical="30dp"
+            android:paddingHorizontal="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Home" />
+
+        <ImageView
+            android:id="@+id/btn_nav_apps"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:src="@drawable/ic_apps"
+            android:paddingVertical="30dp"
+            android:paddingHorizontal="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Apps" />
+    </LinearLayout>
+
+    <!-- Group CHÍNH GIỮA: Fan - A/C - Temp -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <!-- Điều khiển Tốc độ Gió -->
+        <LinearLayout
+            android:id="@+id/group_fan"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/btn_fan_down"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:src="@drawable/ic_chevron_left"
+                android:paddingVertical="35dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_fan_speed"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:text="3"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="1"
+                app:autoSizeTextType="uniform"
+                app:autoSizeMinTextSize="12sp"
+                app:autoSizeMaxTextSize="45sp"
+                app:autoSizeStepGranularity="1sp" />
+
+            <ImageView
+                android:id="@+id/btn_fan_up"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:src="@drawable/ic_chevron_right"
+                android:paddingVertical="35dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </LinearLayout>
+
+        <View android:layout_width="50dp" android:layout_height="match_parent" />
+
+        <!-- Nút A/C -->
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/btn_ac_toggle"
+            android:layout_width="120dp"
+            android:layout_height="match_parent"
+            android:text="A/C"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:autoSizeTextType="uniform"
+            app:autoSizeMinTextSize="12sp"
+            app:autoSizeMaxTextSize="65sp"
+            app:autoSizeStepGranularity="1sp"
+            android:contentDescription="A/C Toggle" />
+
+        <View android:layout_width="50dp" android:layout_height="match_parent" />
+
+        <!-- Điều khiển Nhiệt độ -->
+        <LinearLayout
+            android:id="@+id/group_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/btn_temp_down"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:src="@drawable/ic_chevron_left"
+                android:paddingVertical="35dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/tv_climate_temp"
+                android:layout_width="120dp"
+                android:layout_height="match_parent"
+                android:text="24°C"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="1"
+                app:autoSizeTextType="uniform"
+                app:autoSizeMinTextSize="12sp"
+                app:autoSizeMaxTextSize="45sp"
+                app:autoSizeStepGranularity="1sp" />
+            <ImageView
+                android:id="@+id/btn_temp_up"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:src="@drawable/ic_chevron_right"
+                android:paddingVertical="35dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Group PHẢI: Music/Media Widget (Ẩn theo yêu cầu) -->
+    <LinearLayout
+        android:id="@+id/group_media"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginVertical="12dp"
+        android:background="#2A3245"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_media_album"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scaleType="centerCrop"
+            android:src="@android:drawable/ic_menu_gallery" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="3"
+            android:layout_marginLeft="15dp"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_media_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bài hát"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <TextView
+                android:id="@+id/tv_media_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tác giả"
+                android:textColor="#AAAAAA"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="5dp">
+                <ImageView
+                    android:id="@+id/btn_media_prev"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_chevron_left" />
+                <ImageView
+                    android:id="@+id/btn_media_play"
+                    android:layout_width="30dp"
+                    android:layout_height="28dp"
+                    android:layout_marginHorizontal="25dp"
+                    android:src="@drawable/ic_play" />
+                <ImageView
+                    android:id="@+id/btn_media_next"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

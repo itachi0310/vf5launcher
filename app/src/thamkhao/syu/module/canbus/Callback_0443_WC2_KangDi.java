@@ -1,0 +1,73 @@
+package com.syu.module.canbus;
+
+import android.os.RemoteException;
+import com.syu.canbus.TheApp;
+import com.syu.ipc.IModuleCallback;
+import com.syu.ui.air.AirHelper;
+import com.syu.ui.air.Air_0443_WC2_KangDI;
+import com.syu.ui.door.DoorHelper;
+
+/* JADX INFO: loaded from: classes.dex */
+public class Callback_0443_WC2_KangDi extends CallbackCanbusBase {
+    public static final int U_ALARMINFO_BEGIN = 101;
+    public static final int U_ALARMINFO_END = 110;
+    public static final int U_ALARMINFO_INFO1 = 103;
+    public static final int U_ALARMINFO_INFO2 = 104;
+    public static final int U_ALARMINFO_INFO3 = 105;
+    public static final int U_ALARMINFO_INFO4 = 106;
+    public static final int U_ALARMINFO_INFO5 = 107;
+    public static final int U_ALARMINFO_INFO6 = 108;
+    public static final int U_ALARMINFO_INFO7 = 109;
+    public static final int U_ALARMINFO_NUM = 102;
+    public static final int U_CNT_MAX = 110;
+    public static final int U_LIGHT_BEGIN = 93;
+    public static final int U_LIGHT_END = 101;
+    public static final int U_LIGHT_FARLIGHT = 95;
+    public static final int U_LIGHT_FRONTFOGFLIGHT = 97;
+    public static final int U_LIGHT_LEFTTURNLIGHT = 100;
+    public static final int U_LIGHT_NEARLIGHT = 94;
+    public static final int U_LIGHT_REARLIGHT = 98;
+    public static final int U_LIGHT_RIGHTTURNLIGHT = 99;
+    public static final int U_LIGHT_WIDTHLIGHT = 96;
+
+    @Override // com.syu.module.canbus.CallbackCanbusBase
+    public void in() {
+        IModuleCallback callback = ModuleCallbackCanbusProxy.getInstance();
+        for (int i = 0; i < 110; i++) {
+            DataCanbus.PROXY.register(callback, i, 1);
+        }
+        DoorHelper.sUcDoorEngine = 0;
+        DoorHelper.sUcDoorFl = 1;
+        DoorHelper.sUcDoorFr = 2;
+        DoorHelper.sUcDoorRl = 3;
+        DoorHelper.sUcDoorRr = 4;
+        DoorHelper.sUcDoorBack = 5;
+        DoorHelper.getInstance().buildUi();
+        for (int i2 = 0; i2 < 6; i2++) {
+            DataCanbus.NOTIFY_EVENTS[i2].addNotify(DoorHelper.getInstance(), 0);
+        }
+        AirHelper.getInstance().buildUi(new Air_0443_WC2_KangDI(TheApp.getInstance()));
+        for (int i3 = 10; i3 < 93; i3++) {
+            DataCanbus.NOTIFY_EVENTS[i3].addNotify(AirHelper.SHOW_AND_REFRESH, 0);
+        }
+    }
+
+    @Override // com.syu.module.canbus.CallbackCanbusBase
+    public void out() {
+        for (int i = 0; i < 6; i++) {
+            DataCanbus.NOTIFY_EVENTS[i].removeNotify(DoorHelper.getInstance());
+        }
+        for (int i2 = 10; i2 < 93; i2++) {
+            DataCanbus.NOTIFY_EVENTS[i2].removeNotify(AirHelper.SHOW_AND_REFRESH);
+        }
+        AirHelper.getInstance().destroyUi();
+        DoorHelper.getInstance().destroyUi();
+    }
+
+    @Override // com.syu.ipc.IModuleCallback
+    public void update(int updateCode, int[] ints, float[] flts, String[] strs) throws RemoteException {
+        if (updateCode >= 0 && updateCode < 110) {
+            HandlerCanbus.update(updateCode, ints);
+        }
+    }
+}

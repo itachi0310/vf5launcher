@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Snowflake icon for A/C -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11,11V3h2v8h8v2h-8v8h-2v-8H3v-2h8M12.41,11l3.54,-3.54l1.41,1.41L13.83,12.41l3.54,3.54l-1.41,1.41L12.41,13.83l-3.54,3.54l-1.41,-1.41l3.54,-3.54L7.46,8.87l1.41,-1.41L12.41,11Z" />
+</vector>

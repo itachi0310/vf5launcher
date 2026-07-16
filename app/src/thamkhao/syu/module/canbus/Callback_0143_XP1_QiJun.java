@@ -1,0 +1,58 @@
+package com.syu.module.canbus;
+
+import android.os.RemoteException;
+import com.syu.canbus.TheApp;
+import com.syu.ipc.IModuleCallback;
+import com.syu.module.main.DataMain;
+import com.syu.ui.door.DoorHelper;
+import com.syu.ui.parking.ParkingHelper;
+import com.syu.ui.parking.Parking_RZC_QiJun;
+
+/* JADX INFO: loaded from: classes.dex */
+public class Callback_0143_XP1_QiJun extends CallbackCanbusBase {
+    public static final int U_CNT_MAX = 98;
+    public static final int U_PARK_BTN = 96;
+    public static final int U_PARK_CAMERA = 97;
+    public static final int U_PARK_PAGE = 95;
+    public static final int U_PARK_TXTMSG = 94;
+
+    @Override // com.syu.module.canbus.CallbackCanbusBase
+    public void in() {
+        IModuleCallback callback = ModuleCallbackCanbusProxy.getInstance();
+        for (int i = 0; i < 98; i++) {
+            DataCanbus.PROXY.register(callback, i, 1);
+        }
+        DoorHelper.sUcDoorEngine = 0;
+        DoorHelper.sUcDoorFl = 1;
+        DoorHelper.sUcDoorFr = 2;
+        DoorHelper.sUcDoorRl = 3;
+        DoorHelper.sUcDoorRr = 4;
+        DoorHelper.sUcDoorBack = 5;
+        DoorHelper.getInstance().buildUi();
+        for (int i2 = 0; i2 < 6; i2++) {
+            DataCanbus.NOTIFY_EVENTS[i2].addNotify(DoorHelper.getInstance(), 0);
+        }
+        if (1114255 == DataCanbus.DATA[1000]) {
+            ParkingHelper.getInstance().buildUi(new Parking_RZC_QiJun(TheApp.getInstance()));
+            DataMain.NOTIFY_EVENTS[12].addNotify(ParkingHelper.getInstance(), 0);
+            for (int i3 = 94; i3 <= 97; i3++) {
+                DataCanbus.NOTIFY_EVENTS[i3].addNotify(ParkingHelper.getInstance(), 0);
+            }
+        }
+    }
+
+    @Override // com.syu.module.canbus.CallbackCanbusBase
+    public void out() {
+        for (int i = 0; i < 6; i++) {
+            DataCanbus.NOTIFY_EVENTS[i].removeNotify(DoorHelper.getInstance());
+        }
+        DoorHelper.getInstance().destroyUi();
+    }
+
+    @Override // com.syu.ipc.IModuleCallback
+    public void update(int updateCode, int[] ints, float[] flts, String[] strs) throws RemoteException {
+        if (updateCode >= 0 && updateCode < 98) {
+            HandlerCanbus.update(updateCode, ints);
+        }
+    }
+}

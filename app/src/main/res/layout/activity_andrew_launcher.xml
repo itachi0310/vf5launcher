@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0F1A"
+    android:orientation="vertical"
+    android:weightSum="100">
+
+    <!-- Thanh trạng thái trên cùng (5%) -->
+    <include
+        layout="@layout/layout_launcher_top_bar"
+        android:id="@+id/layout_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="5" />
+
+    <!-- Khu vực nội dung chính (80%) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="80"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <!-- Cột TRÁI: Thông tin xe (Dashboard) (32%) -->
+        <include
+            layout="@layout/layout_launcher_dashboard"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="32" />
+
+        <!-- Cột PHẢI: Widgets & Apps (68%) -->
+        <include
+            layout="@layout/layout_launcher_widgets"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="68" />
+
+    </LinearLayout>
+
+    <!-- Thanh điều khiển phía dưới (15%) -->
+    <include
+        layout="@layout/layout_launcher_bottom_nav"
+        android:id="@+id/layout_bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="15" />
+
+</LinearLayout>

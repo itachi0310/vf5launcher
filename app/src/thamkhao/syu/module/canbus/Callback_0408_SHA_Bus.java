@@ -1,0 +1,154 @@
+package com.syu.module.canbus;
+
+import android.os.RemoteException;
+import com.syu.ipc.IModuleCallback;
+
+/* JADX INFO: loaded from: classes.dex */
+public class Callback_0408_SHA_Bus extends CallbackCanbusBase {
+    public static final int U_CARINFO_24V_LOW_VOLTAGE = 133;
+    public static final int U_CARINFO_24V_OVERLOAD_ERROR = 155;
+    public static final int U_CARINFO_ACCELERATE_PEDAL_CAPABILITY_CHECK = 104;
+    public static final int U_CARINFO_ACCELERATE_PEDAL_GUN_SHORT_CHECK = 106;
+    public static final int U_CARINFO_ACCELERATE_PEDAL_OPEN_CHECK = 107;
+    public static final int U_CARINFO_ACCELERATE_PEDAL_POWER_SHORT_CHECK = 105;
+    public static final int U_CARINFO_ACTIVE_DISCHARGE_ERROR = 144;
+    public static final int U_CARINFO_AIR_BREAK_LEVEL = 102;
+    public static final int U_CARINFO_AIR_CONTROL_DROPPED_CHECK = 121;
+    public static final int U_CARINFO_AIR_PUMP_CONTROL_DROPPED_CHECK = 126;
+    public static final int U_CARINFO_AVER_VOLTAGE_OVERRUN = 161;
+    public static final int U_CARINFO_BATTERY_BRAKE_LEVEL = 97;
+    public static final int U_CARINFO_BATTERY_CONTROL_DROPPED_CHECK = 117;
+    public static final int U_CARINFO_BATTERY_LOW_VOLTAGE_CHECK = 114;
+    public static final int U_CARINFO_BATTERY_TEMP_EQUAL_ERROR = 167;
+    public static final int U_CARINFO_BATTERY_TOO_LOW_CHECK = 115;
+    public static final int U_CARINFO_BATVOL_EQUALIZATION_ERROR = 156;
+    public static final int U_CARINFO_BEGIN = 95;
+    public static final int U_CARINFO_BUS_LOW_VOLTAGE = 139;
+    public static final int U_CARINFO_BUS_OVELVOLTAGE = 178;
+    public static final int U_CARINFO_BUS_OVER_VOLTAGE = 134;
+    public static final int U_CARINFO_CAN_COMMINICATION_ERROR = 188;
+    public static final int U_CARINFO_CAN_COMMUNICATE_EXCEPTION = 208;
+    public static final int U_CARINFO_CAN_RECEPTION_ERROR = 150;
+    public static final int U_CARINFO_CAN_SEND_ERROR = 148;
+    public static final int U_CARINFO_CAR_BRAKE_LEVEL = 95;
+    public static final int U_CARINFO_CAR_CONTROL_BRAKE_LEVEL = 98;
+    public static final int U_CARINFO_CHARGER_BRAKE_LEVEL = 100;
+    public static final int U_CARINFO_CHARGER_DROPPED_CHECK = 119;
+    public static final int U_CARINFO_CHARGE_STORAGE_UNMATCH = 169;
+    public static final int U_CARINFO_CHARGE_TEMP_TOO_HIGH = 173;
+    public static final int U_CARINFO_COMMUNICATION_STATUS = 176;
+    public static final int U_CARINFO_CONTROL_OVERTEMP = 212;
+    public static final int U_CARINFO_CONTROL_TEMP_SENSOR_ERROR = 210;
+    public static final int U_CARINFO_CURR_SENSOR_ERROR = 209;
+    public static final int U_CARINFO_CUTOFF_MAIN_NEGATIVE = 159;
+    public static final int U_CARINFO_DCDC_WORK_TYPE_DATA_LOST = 203;
+    public static final int U_CARINFO_DC_DC_BRAKE_LEVEL = 99;
+    public static final int U_CARINFO_DC_DC_DROPPED_CHECK = 122;
+    public static final int U_CARINFO_DC_HIGH_PRESS_OVER_PRESS = 216;
+    public static final int U_CARINFO_DC_HIGH_PRESS_UNDER_PRESS = 215;
+    public static final int U_CARINFO_DOWN_MACHINE_NORESPOND_ALARM = 165;
+    public static final int U_CARINFO_DRIVE_LOW_VOLTAGE = 132;
+    public static final int U_CARINFO_DRIVE_OVERCUR = 131;
+    public static final int U_CARINFO_DRIVE_OVER_HEAT = 138;
+    public static final int U_CARINFO_EEPPOM_READ_WRITE_ERROR = 179;
+    public static final int U_CARINFO_EEPROM_ERROR = 149;
+    public static final int U_CARINFO_ELEC_DETECTION_ERROR = 140;
+    public static final int U_CARINFO_ELEC_MOTOR_POSITION_EXCEPTION = 207;
+    public static final int U_CARINFO_END = 218;
+    public static final int U_CARINFO_FAST_LIMIT = 135;
+    public static final int U_CARINFO_GAS_TANK_PRESS_LOW_CHECK = 127;
+    public static final int U_CARINFO_HARDWARE_ERROR = 172;
+    public static final int U_CARINFO_HELP_CONTROL_DROPPED_CHECK = 120;
+    public static final int U_CARINFO_HIGH_PRESS_ERROR = 152;
+    public static final int U_CARINFO_HIGH_PRESS_OVER_VOLTAGE = 194;
+    public static final int U_CARINFO_HIGH_PRESS_UNDER_PRESS = 195;
+    public static final int U_CARINFO_INITIATIVE_PEDAL_CAPABILITY_CHECK = 108;
+    public static final int U_CARINFO_INITIATIVE_PEDAL_GUN_SHORT_CHECK = 110;
+    public static final int U_CARINFO_INITIATIVE_PEDAL_OPEN_CHECK = 111;
+    public static final int U_CARINFO_INITIATIVE_PEDAL_POWER_SHORT_CHECK = 109;
+    public static final int U_CARINFO_INPUT_LOW_PRESS = 177;
+    public static final int U_CARINFO_INPUT_VALTAGE = 174;
+    public static final int U_CARINFO_INSULATION_ERROR = 166;
+    public static final int U_CARINFO_INTERLOCK_ERROR = 204;
+    public static final int U_CARINFO_IPM_PRETECT = 184;
+    public static final int U_CARINFO_LACK_OF_PHASE = 183;
+    public static final int U_CARINFO_LOW_CAPACITY_ALARM = 164;
+    public static final int U_CARINFO_LOW_PRESS_CURR_SENSOR = 201;
+    public static final int U_CARINFO_LOW_PRESS_ERROR = 190;
+    public static final int U_CARINFO_LOW_PRESS_OVER_VOLTAGE = 196;
+    public static final int U_CARINFO_LOW_PRESS_UNDER_VOLTAGE = 199;
+    public static final int U_CARINFO_MICROPHONE = 94;
+    public static final int U_CARINFO_MOTOR_BRAKE_LEVEL = 96;
+    public static final int U_CARINFO_MOTOR_CONTROL_DROPPED_CHECK = 116;
+    public static final int U_CARINFO_MOTOR_CONTROL_INVERTER_ERROR = 217;
+    public static final int U_CARINFO_MOTOR_CONTROL_TEMP_CHECK = 113;
+    public static final int U_CARINFO_MOTOR_OVERCUR = 130;
+    public static final int U_CARINFO_MOTOR_OVERLOAD = 147;
+    public static final int U_CARINFO_MOTOR_OVERTEMP = 213;
+    public static final int U_CARINFO_MOTOR_SPEEDING = 141;
+    public static final int U_CARINFO_MOTOR_SPEEDING2 = 214;
+    public static final int U_CARINFO_MOTOR_TEMP_SENSOR_DROPPED = 145;
+    public static final int U_CARINFO_MOTOR_TEMP_SENSOR_ERROR = 211;
+    public static final int U_CARINFO_MOTOR_TEMP_TOO_HIGH = 143;
+    public static final int U_CARINFO_OUTPUT_ERROR = 197;
+    public static final int U_CARINFO_OUTPUT_IS_MISSING = 137;
+    public static final int U_CARINFO_OVERCURRENT = 180;
+    public static final int U_CARINFO_OVERHEAT = 181;
+    public static final int U_CARINFO_OVERLOAD = 182;
+    public static final int U_CARINFO_OVER_CHARGE_ALARM = 170;
+    public static final int U_CARINFO_OVER_CURRENT_ERROR = 193;
+    public static final int U_CARINFO_OVER_HEAT_ERROR = 191;
+    public static final int U_CARINFO_OVER_TEMP_ERROR = 198;
+    public static final int U_CARINFO_OVER_VOLTAGE_ERROR = 192;
+    public static final int U_CARINFO_PHASE_ELEC_OVER_CURR = 153;
+    public static final int U_CARINFO_POSITION_ERROR = 187;
+    public static final int U_CARINFO_POWER_BATTERY_LOW_VOLTAGE_CHECK = 112;
+    public static final int U_CARINFO_POWER_MODULE_OVER_CURR = 206;
+    public static final int U_CARINFO_POWER_VOLTAGE_ERROR = 186;
+    public static final int U_CARINFO_PUMP_BREAK_LEVEL = 103;
+    public static final int U_CARINFO_RESISTANCE_PUMP_BREAK_LEVEL = 101;
+    public static final int U_CARINFO_ROTATION_ERROR = 136;
+    public static final int U_CARINFO_RUN_FAILED = 205;
+    public static final int U_CARINFO_SELF_TEST_ERROR = 185;
+    public static final int U_CARINFO_SELF_TEST_FAIL = 189;
+    public static final int U_CARINFO_SINGLE_MAX_TEMP_LIMIT = 157;
+    public static final int U_CARINFO_SINGLE_MAX_VOLTAGE_LIMIT = 162;
+    public static final int U_CARINFO_SINGLE_MIN_VOLTAGE_LIMIT = 163;
+    public static final int U_CARINFO_SOC_FAILURE_RATE_10_CHECK = 125;
+    public static final int U_CARINFO_SOC_FAILURE_RATE_20_CHECK = 124;
+    public static final int U_CARINFO_SOC_FAILURE_RATE_30_CHECK = 123;
+    public static final int U_CARINFO_SOC_JUMP_ERROR = 168;
+    public static final int U_CARINFO_SOC_TOO_HIGH = 171;
+    public static final int U_CARINFO_SPEED_DEVIATION_TOO_LARGE = 142;
+    public static final int U_CARINFO_START_STATE = 175;
+    public static final int U_CARINFO_STOP_POWER_FAIL = 200;
+    public static final int U_CARINFO_TBOX_DROPPED_CHECK = 128;
+    public static final int U_CARINFO_TBOX_SIM_STATE = 129;
+    public static final int U_CARINFO_TEMP_SENSOR_ERROR = 202;
+    public static final int U_CARINFO_THROTTLE_BROKEN = 151;
+    public static final int U_CARINFO_TORQUE_TOO_LARGE = 154;
+    public static final int U_CARINFO_TOTAL_CUR_LIMIT = 160;
+    public static final int U_CARINFO_TOTAL_VOLTAGE_OVERRUN = 158;
+    public static final int U_CARINFO_TRANSFORMER_OVERLOAD = 146;
+    public static final int U_CARINFO_WATER_PUMP_STATE = 118;
+    public static final int U_CNT_MAX = 218;
+
+    @Override // com.syu.ipc.IModuleCallback
+    public void update(int updateCode, int[] ints, float[] flts, String[] strs) throws RemoteException {
+        if (updateCode >= 0 && updateCode < 218) {
+            HandlerCanbus.update(updateCode, ints);
+        }
+    }
+
+    @Override // com.syu.module.canbus.CallbackCanbusBase
+    public void in() {
+        IModuleCallback callback = ModuleCallbackCanbusProxy.getInstance();
+        for (int i = 0; i < 218; i++) {
+            DataCanbus.PROXY.register(callback, i, 1);
+        }
+    }
+
+    @Override // com.syu.module.canbus.CallbackCanbusBase
+    public void out() {
+    }
+}
