@@ -153,7 +153,7 @@ public class AppEmbedManager {
     // === PIP Setup ===
 
     /**
-     * Refresh the PIP region settings without restarting the app.
+     * Refresh the PIP region settings and ensure the app is visible.
      * Useful when returning to Home screen.
      */
     public void refreshPipState() {
@@ -170,9 +170,33 @@ public class AppEmbedManager {
             if (w > 0 && h > 0) {
                 String pipRect = String.format(Locale.US, "%d %d %d %d", x, y, x + w, y + h);
                 applyPipSettings(pipRect);
-                Log.d(TAG, "✓ PIP state refreshed: " + pipRect);
+                
+                // Quan trọng: Gọi lại launch để app hiện lên lại nếu đang bị ẩn
+                launchMapApp();
+                Log.d(TAG, "✓ PIP state refreshed and app launched: " + pipRect);
             }
         });
+    }
+
+    /**
+     * Hide the PIP window. Should be called when the launcher is not visible.
+     */
+    public void hidePip() {
+        Log.d(TAG, "Hiding PIP");
+        setSystemProperty("sys.lsec.pip_show", "0");
+        
+        // Gửi broadcast thông báo ẩn cho hệ thống
+        try {
+            Intent showIntent = new Intent("com.syu.pip.show");
+            showIntent.putExtra("show", false);
+            showIntent.putExtra("packagename", currentPackage);
+            activity.sendBroadcast(showIntent);
+
+            // Xóa rect để tránh đè lên các app khác (một số firmware cần điều này)
+            Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
+            rectIntent.putExtra("pip_rect", "0 0 0 0");
+            activity.sendBroadcast(rectIntent);
+        } catch (Exception ignored) {}
     }
 
     private void setupAndLaunchPip() {
@@ -221,16 +245,19 @@ public class AppEmbedManager {
         setSystemProperty("sys.lsec.pip_rect", pipRect);
         setSystemProperty("persist.launcher.packagename", currentPackage);
         setSystemProperty("sys.lsec.pip_show", "1");
-        
-        // 2. Một số firmware đời mới dùng key này
         setSystemProperty("sys.lsec.pip_mode", "1");
+        
+        // Bật touch cho vùng PIP
+        setSystemProperty("sys.lsec.pip_touch", "1");
 
         // 3. Gửi Intent ép hệ thống cập nhật Layout ngay lập tức
         try {
-            // Tín hiệu A: Cập nhật tọa độ
+            // Tín hiệu A: Cập nhật tọa độ và trạng thái
             Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
             rectIntent.putExtra("pip_rect", pipRect);
             rectIntent.putExtra("rect", pipRect);
+            rectIntent.putExtra("show", true);
+            rectIntent.putExtra("packagename", currentPackage);
             activity.sendBroadcast(rectIntent);
 
             // Tín hiệu B: Ép hiển thị (Force Show)
@@ -239,6 +266,12 @@ public class AppEmbedManager {
             showIntent.putExtra("rect", pipRect);
             showIntent.putExtra("packagename", currentPackage);
             activity.sendBroadcast(showIntent);
+            
+            // Tín hiệu C: Dự phòng cho một số dòng firmware khác
+            Intent lsecIntent = new Intent("com.lsec.action.PIP_SHOW");
+            lsecIntent.putExtra("show", true);
+            lsecIntent.putExtra("rect", pipRect);
+            activity.sendBroadcast(lsecIntent);
         } catch (Exception ignored) {}
     }
 
@@ -274,6 +307,10 @@ public class AppEmbedManager {
             String currentRect = String.format(Locale.US, "%d %d %d %d", 
                 location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
             intent.putExtra("pip_rect", currentRect);
+            
+            // Thêm các key bổ sung mà một số app Map (Vietmap) yêu cầu
+            intent.putExtra("com.syu.action.PIP", true);
+            intent.putExtra("isPipMode", true);
 
             activity.startActivity(intent);
             Log.d(TAG, "✓ Launched map app with embedded flags: " + currentPackage);

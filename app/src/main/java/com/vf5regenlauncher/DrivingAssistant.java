@@ -19,13 +19,14 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
     private boolean optionHighwayEnabled = false;
     private boolean optionSmartEnabled = false;
 
-    // State tracking to ensure one-time execution per threshold crossing
+    // State tracking
     private boolean isAboveHighwayThreshold = false;
+    private float lastSpeedKmHForSmart = -1;
+    private int decelCount = 0;
 
     // Timer logic
     private long highwayHighStartTime = 0;
     private long highwayLowStartTime = 0;
-    private long smartHighStartTime = 0;
     private long smartLowStartTime = 0;
     private long lastChangeTime = 0;
     private static final long LOCK_DURATION = 2500; // Khóa 2.5s để xe ổn định
@@ -126,35 +127,52 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
 
         // --- OPTION 2: SMART ---
         if (optionSmartEnabled) {
-            float accel = calculateAcceleration();
-            
-            // Speed Guard < 20km/h
+            // Bảo vệ khi tốc độ quá thấp
             if (currentSpeedKmH < 20) {
                 if (currentRegenMode == 2) executeRegenChange(1, "Smart Guard < 20");
+                lastSpeedKmHForSmart = currentSpeedKmH;
+                decelCount = 0;
                 return;
             }
 
-            if (currentRegenMode == 1) { // Muốn lên HIGH
-                if (accel < -0.4f) {
-                    if (smartHighStartTime == 0) smartHighStartTime = now;
-                    if (now - smartHighStartTime >= 500) {
-                        executeRegenChange(2, "Smart Decel HIGH (a=" + accel + ")");
-                        smartHighStartTime = 0;
-                    }
-                } else {
-                    smartHighStartTime = 0;
+            // Logic phát hiện giảm tốc nhanh (> 3km/h liên tiếp 3 lần)
+            if (lastSpeedKmHForSmart != -1) {
+                float speedDiff = lastSpeedKmHForSmart - currentSpeedKmH;
+                
+                if (speedDiff >= 3.0f) {
+                    decelCount++;
+                    Log.d(TAG, "Decel step: " + speedDiff + " km/h, count: " + decelCount);
+                } else if (speedDiff < -1.0f) {
+                    // Nếu xe đang tăng tốc lại (diff âm), reset đếm
+                    decelCount = 0;
                 }
-            } else if (currentRegenMode == 2) { // Muốn về LOW
+
+                if (decelCount >= 3) {
+                    if (currentRegenMode == 1) {
+                        executeRegenChange(2, "Smart Decel Trigger (>3kmh x3)");
+                    }
+                    decelCount = 0; // Reset sau khi kích hoạt
+                }
+            }
+            lastSpeedKmHForSmart = currentSpeedKmH;
+
+            // Logic quay lại LOW (Regen 1) khi xe đã ổn định hoặc đang tăng tốc
+            if (currentRegenMode == 2) {
+                float accel = calculateAcceleration();
                 if (accel > -0.1f) {
                     if (smartLowStartTime == 0) smartLowStartTime = now;
                     if (now - smartLowStartTime >= 2000) {
-                        executeRegenChange(1, "Smart Resume LOW (a=" + accel + ")");
+                        executeRegenChange(1, "Smart Resume LOW (Stable)");
                         smartLowStartTime = 0;
                     }
                 } else {
                     smartLowStartTime = 0;
                 }
             }
+        } else {
+            // Reset trạng thái nếu tắt option
+            lastSpeedKmHForSmart = -1;
+            decelCount = 0;
         }
     }
 

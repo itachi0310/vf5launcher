@@ -65,6 +65,7 @@
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_left"
                 android:paddingVertical="35dp"
+                android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?attr/selectableItemBackgroundBorderless" />
@@ -90,6 +91,7 @@
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_right"
                 android:paddingVertical="35dp"
+                android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?attr/selectableItemBackgroundBorderless" />
@@ -132,6 +134,7 @@
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_left"
                 android:paddingVertical="35dp"
+                android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?attr/selectableItemBackgroundBorderless" />
@@ -155,6 +158,7 @@
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_right"
                 android:paddingVertical="35dp"
+                android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?attr/selectableItemBackgroundBorderless" />

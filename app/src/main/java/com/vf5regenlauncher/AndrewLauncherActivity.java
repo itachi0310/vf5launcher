@@ -113,6 +113,16 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        // Quan trọng: Ẩn PIP khi rời khỏi launcher để không đè lên các ứng dụng khác
+        // và để giải phóng focus giúp hiện bàn phím ở các app khác.
+        if (appEmbedManager != null) {
+            appEmbedManager.hidePip();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (canbusConnector != null) {
