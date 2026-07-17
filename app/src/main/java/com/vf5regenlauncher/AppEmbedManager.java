@@ -171,9 +171,10 @@ public class AppEmbedManager {
                 String pipRect = String.format(Locale.US, "%d %d %d %d", x, y, x + w, y + h);
                 applyPipSettings(pipRect);
                 
-                // Quan trọng: Gọi lại launch để app hiện lên lại nếu đang bị ẩn
-                launchMapApp();
-                Log.d(TAG, "✓ PIP state refreshed and app launched: " + pipRect);
+                // Thay vì gọi launchMapApp() ngay lập tức (gây nhảy app), 
+                // ta chỉ kích hoạt lại PIP qua tín hiệu hệ thống. 
+                // Chỉ launch lại nếu sau 1s app vẫn không hiện (logic này có thể thêm sau nếu cần).
+                Log.d(TAG, "✓ PIP state refreshed: " + pipRect);
             }
         });
     }

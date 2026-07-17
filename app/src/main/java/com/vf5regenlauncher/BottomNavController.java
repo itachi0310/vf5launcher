@@ -53,29 +53,8 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
 
         View apps = activity.findViewById(R.id.btn_nav_apps);
         if (apps != null) apps.setOnClickListener(v -> {
-            try {
-                // Mở danh sách ứng dụng mặc định của hệ thống
-                Intent intent = new Intent(Intent.ACTION_ALL_APPS);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                
-                // Kiểm tra xem hệ thống có xử lý Intent này không
-                if (intent.resolveActivity(activity.getPackageManager()) != null) {
-                    activity.startActivity(intent);
-                } else {
-                    // Fallback cho đầu Android SYU/FYT (thường dùng broadcast hoặc activity launcher3)
-                    Intent syuIntent = new Intent("com.syu.canbus.ALL_APPS");
-                    syuIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    activity.startActivity(syuIntent);
-                }
-            } catch (Exception e) {
-                // Nếu các cách trên lỗi, thử phát broadcast phổ biến trên SYU
-                try {
-                    activity.sendBroadcast(new Intent("com.syu.allapps"));
-                } catch (Exception e2) {
-                    // Cuối cùng mới quay lại AppListActivity của mình nếu không còn cách nào khác
-                    Intent intent = new Intent(activity, AppListActivity.class);
-                    activity.startActivity(intent);
-                }
+            if (activity instanceof AndrewLauncherActivity) {
+                ((AndrewLauncherActivity) activity).openSystemAppList();
             }
         });
     }

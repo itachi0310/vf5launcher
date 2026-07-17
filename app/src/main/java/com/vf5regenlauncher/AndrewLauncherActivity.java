@@ -90,15 +90,45 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         Log.d("SCAN_DATA", "Key Pressed: " + keyCode);
 
         // Chặn các phím Mode (176) hoặc các phím tương tự từ vô lăng để tránh popup hệ thống
-        // 176: KEYCODE_MODE trên nhiều đầu Android
-        // 209: Một mã phím khác thường gặp cho phím Mode
         if (keyCode == 176 || keyCode == 209) {
             if (dashboardController != null) {
                 dashboardController.toggleDriveMode();
             }
-            return true; // Chặn phím, không cho hệ thống xử lý tiếp
+            return true;
         }
+
+        // Xử lý phím Menu (82) hoặc phím App Switch (187)
+        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == 187) {
+            openSystemAppList();
+            return true;
+        }
+
         return super.onKeyDown(keyCode, event);
+    }
+
+    public void openSystemAppList() {
+        try {
+            // Cách 1: Sử dụng Intent chuẩn của Android
+            Intent intent = new Intent(Intent.ACTION_ALL_APPS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivity(intent);
+                return;
+            }
+
+            // Cách 2: Sử dụng Broadcast đặc trưng của đầu SYU/FYT (Phổ biến nhất)
+            sendBroadcast(new Intent("com.syu.allapps"));
+            
+            // Cách 3: Thử Intent cụ thể của SYU Canbus
+            Intent syuIntent = new Intent("com.syu.canbus.ALL_APPS");
+            syuIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(syuIntent);
+        } catch (Exception e) {
+            Log.e("Launcher", "Could not open system app list", e);
+            // Fallback cuối cùng là AppListActivity nội bộ
+            Intent intent = new Intent(this, AppListActivity.class);
+            startActivity(intent);
+        }
     }
 
     @Override
