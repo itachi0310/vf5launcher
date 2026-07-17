@@ -49,8 +49,46 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         canbusConnector.addListener(topBarController);
         canbusConnector.addListener(drivingAssistant);
         
+        // Thêm listener cho chính Activity để bắt các phím vô lăng đặc biệt
+        canbusConnector.addListener(canbusKeyHandler);
+        
         canbusConnector.connect();
+        
+        // Kiểm tra nếu Activity được mở bởi phím Mode (Intent Radio)
+        handleSpecialIntents(getIntent());
     }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleSpecialIntents(intent);
+    }
+
+    private void handleSpecialIntents(Intent intent) {
+        if (intent != null && "com.syu.radio".equals(intent.getAction())) {
+            Log.d("SCAN_DATA", "Intercepted Mode Key (com.syu.radio)");
+            if (dashboardController != null) {
+                dashboardController.toggleDriveMode();
+            }
+        }
+    }
+
+    private final CanbusConnector.CanbusDataListener canbusKeyHandler = new CanbusConnector.CanbusDataListener() {
+        @Override
+        public void onDataReceived(int moduleId, int code, int value) {
+            // Module 0 thường chứa các sự kiện phím hệ thống
+            if (moduleId == 0) {
+                // Mã phím cuộc gọi trên một số dòng SYU VinFast là 7 hoặc 12 (nhấn xuống = 1)
+                // Hoặc code 114, 115
+                if ((code == 7 || code == 12 || code == 114) && value == 1) {
+                    Log.d("SCAN_DATA", "Intercepted Call Key | Code: " + code);
+                    if (dashboardController != null) {
+                        dashboardController.toggleRegenMode();
+                    }
+                }
+            }
+        }
+    };
 
     private void requestInternetPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -85,60 +123,59 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // LOG TẤT CẢ CÁC PHÍM NHẬN ĐƯỢC ĐỂ TÌM PHÍM VÔ LĂNG
-        Log.d("SCAN_DATA", "Key Pressed: " + keyCode);
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            Log.d("SCAN_DATA", "Key Pressed: " + keyCode);
 
-        // Chặn các phím Mode (176) hoặc các phím tương tự từ vô lăng để tránh popup hệ thống
-        if (keyCode == 176 || keyCode == 209) {
-            if (dashboardController != null) {
-                dashboardController.toggleDriveMode();
+            // 1. Xử lý phím Mode (Vô lăng) - Mã 176 hoặc 209
+            if (keyCode == 176 || keyCode == 209) {
+                if (dashboardController != null) {
+                    dashboardController.toggleDriveMode();
+                }
+                return true;
             }
-            return true;
-        }
 
-        // Xử lý phím Menu (82) hoặc phím App Switch (187)
-        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == 187) {
-            openSystemAppList();
-            return true;
+            // 2. Xử lý phím Menu hoặc Đa nhiệm (Menu=82, AppSwitch=187)
+            if (keyCode == 82 || keyCode == 187 || keyCode == 221 || keyCode == 222) {
+                openSystemAppList();
+                return true;
+            }
         }
-
-        return super.onKeyDown(keyCode, event);
+        return super.dispatchKeyEvent(event);
     }
 
     public void openSystemAppList() {
+        Log.d("Launcher", "Opening System App List...");
         try {
-            // Cách 1: Sử dụng Intent chuẩn của Android
+            // Lệnh mạnh nhất cho đầu SYU/FYT
+            Intent syuIntent = new Intent("com.syu.allapps");
+            sendBroadcast(syuIntent);
+            
+            // Một số bản firmware dùng action này cho phím Menu vật lý
+            sendBroadcast(new Intent("com.syu.canbus.ALL_APPS"));
+
+            // Nếu là đầu đời mới (Android 10+)
             Intent intent = new Intent(Intent.ACTION_ALL_APPS);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             if (intent.resolveActivity(getPackageManager()) != null) {
                 startActivity(intent);
-                return;
             }
-
-            // Cách 2: Sử dụng Broadcast đặc trưng của đầu SYU/FYT (Phổ biến nhất)
-            sendBroadcast(new Intent("com.syu.allapps"));
-            
-            // Cách 3: Thử Intent cụ thể của SYU Canbus
-            Intent syuIntent = new Intent("com.syu.canbus.ALL_APPS");
-            syuIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(syuIntent);
         } catch (Exception e) {
-            Log.e("Launcher", "Could not open system app list", e);
-            // Fallback cuối cùng là AppListActivity nội bộ
-            Intent intent = new Intent(this, AppListActivity.class);
-            startActivity(intent);
+            Log.e("Launcher", "Could not open app list", e);
+            // Fallback cuối cùng
+            startActivity(new Intent(this, AppListActivity.class));
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Khi quay lại launcher, làm mới vùng vẽ sau một chút delay để tránh bung app
+        // Khi quay lại launcher, chỉ ép hiện vùng PIP (Không dùng startActivity để tránh nhảy app)
         if (appEmbedManager != null) {
             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
                 appEmbedManager.refreshPipState();
-            }, 800); // Tăng delay lên 800ms để hệ thống ổn định
+            }, 500); // Giảm delay xuống 500ms để Map hiện nhanh hơn
         }
     }
 

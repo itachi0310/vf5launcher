@@ -22,6 +22,7 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
     
     private final Activity activity;
     private int currentDriveMode = 0; // 0: ECO, 1: SPORT
+    private int currentRegenMode = 1; // 0: OFF, 1: LOW, 2: HIGH
     private boolean isCharging = false;
 
     public DashboardController(Activity activity) {
@@ -147,12 +148,20 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
         sendCarCmd(33, nextMode);
     }
 
+    public void toggleRegenMode() {
+        // Chuyển đổi giữa Low (1) và High (2)
+        int nextMode = (currentRegenMode == 1) ? 2 : 1;
+        sendCarCmd(34, nextMode);
+    }
+
     private void updateDriveModeDisplay(int value) {
+        this.currentDriveMode = value; // Đồng bộ biến nội bộ
         if (btnModeEco != null) btnModeEco.setBackgroundResource(value == 0 ? R.drawable.bg_button_selected : 0);
         if (btnModeSport != null) btnModeSport.setBackgroundResource(value == 1 ? R.drawable.bg_button_selected : 0);
     }
 
     private void updateRegenModeDisplay(int value) {
+        this.currentRegenMode = value; // Đồng bộ biến nội bộ
         if (btnRegenOff != null) btnRegenOff.setBackgroundResource(value == 0 ? R.drawable.bg_button_selected : 0);
         if (btnRegenLow != null) btnRegenLow.setBackgroundResource(value == 1 ? R.drawable.bg_button_selected : 0);
         if (btnRegenHigh != null) btnRegenHigh.setBackgroundResource(value == 2 ? R.drawable.bg_button_selected : 0);

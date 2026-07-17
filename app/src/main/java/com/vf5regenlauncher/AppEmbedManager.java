@@ -154,7 +154,7 @@ public class AppEmbedManager {
 
     /**
      * Refresh the PIP region settings and ensure the app is visible.
-     * Useful when returning to Home screen.
+     * Use broadcasts instead of startActivity to avoid "jumping" apps.
      */
     public void refreshPipState() {
         if (container == null) return;
@@ -169,12 +169,28 @@ public class AppEmbedManager {
 
             if (w > 0 && h > 0) {
                 String pipRect = String.format(Locale.US, "%d %d %d %d", x, y, x + w, y + h);
-                applyPipSettings(pipRect);
                 
-                // Thay vì gọi launchMapApp() ngay lập tức (gây nhảy app), 
-                // ta chỉ kích hoạt lại PIP qua tín hiệu hệ thống. 
-                // Chỉ launch lại nếu sau 1s app vẫn không hiện (logic này có thể thêm sau nếu cần).
-                Log.d(TAG, "✓ PIP state refreshed: " + pipRect);
+                // 1. Cập nhật thuộc tính hệ thống
+                setSystemProperty("sys.lsec.pip_rect", pipRect);
+                setSystemProperty("sys.lsec.pip_show", "1");
+                
+                // 2. Gửi các tín hiệu ép hệ thống vẽ lại cửa sổ vào vùng rect
+                try {
+                    // Tín hiệu A: Ép tọa độ
+                    Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
+                    rectIntent.putExtra("pip_rect", pipRect);
+                    rectIntent.putExtra("rect", pipRect);
+                    rectIntent.putExtra("show", true);
+                    activity.sendBroadcast(rectIntent);
+
+                    // Tín hiệu B: Ép hiển thị gói ứng dụng hiện tại vào PIP
+                    Intent showIntent = new Intent("com.syu.pip.show");
+                    showIntent.putExtra("show", true);
+                    showIntent.putExtra("packagename", currentPackage);
+                    activity.sendBroadcast(showIntent);
+                } catch (Exception ignored) {}
+                
+                Log.d(TAG, "✓ PIP refreshed via Broadcasts (Silent): " + pipRect);
             }
         });
     }
