@@ -183,14 +183,14 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
     }
 
     private void updateGearDisplay(int value) {
-        // VF5 chỉ có R N D. Giả định giá trị từ Canbus là 1=R, 2=N, 3=D
+        // Cập nhật mapping theo thực tế: 1=R, 2=D, 0=N
         String gears = "R N D";
         SpannableString spannable = new SpannableString(gears);
         int start = -1;
         switch (value) {
             case 1: start = 0; break; // R
-            case 2: start = 2; break; // N
-            case 3: start = 4; break; // D
+            case 0: start = 2; break; // N
+            case 2: start = 4; break; // D
         }
         if (start != -1) {
             spannable.setSpan(new ForegroundColorSpan(Color.WHITE), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);

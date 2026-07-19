@@ -148,23 +148,31 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     public void openSystemAppList() {
         Log.d("Launcher", "Opening System App List...");
         try {
-            // Lệnh mạnh nhất cho đầu SYU/FYT
-            Intent syuIntent = new Intent("com.syu.allapps");
-            sendBroadcast(syuIntent);
-            
-            // Một số bản firmware dùng action này cho phím Menu vật lý
-            sendBroadcast(new Intent("com.syu.canbus.ALL_APPS"));
+            // Thử mở trực tiếp Activity Launcher của SYU (Cách này rất hiệu quả nếu Broadcast bị chặn)
+            Intent syuLauncher = new Intent();
+            syuLauncher.setComponent(new android.content.ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
+            syuLauncher.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(syuLauncher);
+                return;
+            } catch (Exception ignored) {}
 
-            // Nếu là đầu đời mới (Android 10+)
+            // Thử lệnh Broadcast mở giao diện chính của Canbus
+            sendBroadcast(new Intent("com.syu.allapps"));
+            sendBroadcast(new Intent("action.com.syu.canbus.LAUNCHER"));
+
+            // Intent chuẩn Android
             Intent intent = new Intent(Intent.ACTION_ALL_APPS);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             if (intent.resolveActivity(getPackageManager()) != null) {
                 startActivity(intent);
+                return;
             }
+
+            // Fallback
+            startActivity(new Intent(this, AppListActivity.class));
         } catch (Exception e) {
             Log.e("Launcher", "Could not open app list", e);
-            // Fallback cuối cùng
-            startActivity(new Intent(this, AppListActivity.class));
         }
     }
 

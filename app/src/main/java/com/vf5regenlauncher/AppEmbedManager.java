@@ -170,33 +170,35 @@ public class AppEmbedManager {
             if (w > 0 && h > 0) {
                 String pipRect = String.format(Locale.US, "%d %d %d %d", x, y, x + w, y + h);
                 
-                // 1. Cập nhật thuộc tính hệ thống
-                setSystemProperty("sys.lsec.pip_rect", pipRect);
+                // 1. Ép thuộc tính hệ thống trước
                 setSystemProperty("sys.lsec.pip_show", "1");
                 setSystemProperty("sys.lsec.pip_mode", "1");
+                setSystemProperty("sys.lsec.pip_rect", pipRect);
+                setSystemProperty("sys.lsec.pip_touch", "1");
                 
-                // 2. Gửi các tín hiệu ép hệ thống vẽ lại cửa sổ vào vùng rect
+                // 2. Gửi tín hiệu Broadcast ép hiển thị
                 try {
+                    Intent showIntent = new Intent("com.syu.pip.show");
+                    showIntent.putExtra("show", true);
+                    showIntent.putExtra("packagename", currentPackage);
+                    showIntent.putExtra("rect", pipRect);
+                    activity.sendBroadcast(showIntent);
+
                     Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
                     rectIntent.putExtra("pip_rect", pipRect);
                     rectIntent.putExtra("show", true);
                     activity.sendBroadcast(rectIntent);
 
-                    Intent showIntent = new Intent("com.syu.pip.show");
-                    showIntent.putExtra("show", true);
-                    showIntent.putExtra("packagename", currentPackage);
-                    activity.sendBroadcast(showIntent);
-                    
-                    // Kỹ thuật "Kích hoạt ngầm": 
-                    // Gọi launch intent với cờ NO_ANIMATION và FROM_HISTORY 
-                    // để đưa Map về lại mà không giật màn hình
+                    // 3. Silent Launch: Đưa app Map về Foreground mà không có hiệu ứng chuyển cảnh
                     PackageManager pm = activity.getPackageManager();
                     Intent intent = pm.getLaunchIntentForPackage(currentPackage);
                     if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
+                                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | 
+                                     Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                        // Những flag cực kỳ quan trọng để nhúng PIP
+                        intent.putExtra("force_pip", true);
+                        intent.putExtra("pip_mode", 1);
                         activity.startActivity(intent);
                     }
                 } catch (Exception ignored) {}
@@ -211,22 +213,25 @@ public class AppEmbedManager {
      */
     public void hidePip() {
         Log.d(TAG, "Hiding PIP");
+        
+        // 1. Tắt các thuộc tính hệ thống
         setSystemProperty("sys.lsec.pip_show", "0");
         setSystemProperty("sys.lsec.pip_mode", "0");
+        setSystemProperty("sys.lsec.pip_touch", "0");
         
-        // Gửi broadcast thông báo ẩn quyết liệt cho hệ thống
+        // 2. Gửi broadcast thông báo ẩn quyết liệt cho hệ thống
         try {
-            // Tắt show
-            Intent showIntent = new Intent("com.syu.pip.show");
-            showIntent.putExtra("show", false);
-            showIntent.putExtra("packagename", ""); // Xóa package để giải phóng
-            activity.sendBroadcast(showIntent);
-
-            // Đưa tọa độ về 0 để Map biến mất hoàn toàn, không đè Youtube
+            // Đưa tọa độ về 0 0 0 0 (Cực kỳ quan trọng để không đè Youtube)
             Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
             rectIntent.putExtra("pip_rect", "0 0 0 0");
             rectIntent.putExtra("show", false);
             activity.sendBroadcast(rectIntent);
+
+            // Gửi lệnh Show=false
+            Intent showIntent = new Intent("com.syu.pip.show");
+            showIntent.putExtra("show", false);
+            showIntent.putExtra("packagename", ""); 
+            activity.sendBroadcast(showIntent);
             
             // Tín hiệu bổ sung cho các dòng máy khác
             activity.sendBroadcast(new Intent("com.lsec.action.PIP_SHOW").putExtra("show", false));
