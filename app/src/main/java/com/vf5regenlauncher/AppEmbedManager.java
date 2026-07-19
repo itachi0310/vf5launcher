@@ -154,29 +154,28 @@ public class AppEmbedManager {
 
     /**
      * Refresh the PIP region settings and ensure the app is visible.
-     * Use broadcasts instead of startActivity to avoid "jumping" apps.
+     * Spam the commands multiple times to ensure the system applies the rect.
      */
     public void refreshPipState() {
         if (container == null) return;
         
-        container.post(() -> {
-            int[] location = new int[2];
-            container.getLocationOnScreen(location);
-            int x = location[0];
-            int y = location[1];
-            int w = container.getWidth();
-            int h = container.getHeight();
-
-            if (w > 0 && h > 0) {
-                String pipRect = String.format(Locale.US, "%d %d %d %d", x, y, x + w, y + h);
+        container.post(new Runnable() {
+            int count = 0;
+            @Override
+            public void run() {
+                if (count >= 3) return; // Gửi 3 lần
                 
-                // 1. Ép thuộc tính hệ thống trước
+                int[] location = new int[2];
+                container.getLocationOnScreen(location);
+                String pipRect = String.format(Locale.US, "%d %d %d %d", 
+                        location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
+                
+                // Ghi thuộc tính hệ thống
+                setSystemProperty("sys.lsec.pip_rect", pipRect);
                 setSystemProperty("sys.lsec.pip_show", "1");
                 setSystemProperty("sys.lsec.pip_mode", "1");
-                setSystemProperty("sys.lsec.pip_rect", pipRect);
-                setSystemProperty("sys.lsec.pip_touch", "1");
-                
-                // 2. Gửi tín hiệu Broadcast ép hiển thị
+
+                // Gửi Broadcast ép khung
                 try {
                     Intent showIntent = new Intent("com.syu.pip.show");
                     showIntent.putExtra("show", true);
@@ -188,22 +187,11 @@ public class AppEmbedManager {
                     rectIntent.putExtra("pip_rect", pipRect);
                     rectIntent.putExtra("show", true);
                     activity.sendBroadcast(rectIntent);
-
-                    // 3. Silent Launch: Đưa app Map về Foreground mà không có hiệu ứng chuyển cảnh
-                    PackageManager pm = activity.getPackageManager();
-                    Intent intent = pm.getLaunchIntentForPackage(currentPackage);
-                    if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
-                                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | 
-                                     Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                        // Những flag cực kỳ quan trọng để nhúng PIP
-                        intent.putExtra("force_pip", true);
-                        intent.putExtra("pip_mode", 1);
-                        activity.startActivity(intent);
-                    }
                 } catch (Exception ignored) {}
-                
-                Log.d(TAG, "✓ PIP refreshed and silently re-activated: " + pipRect);
+
+                Log.d(TAG, "✓ PIP Refresh attempt #" + (count + 1));
+                count++;
+                container.postDelayed(this, 300); // Lặp lại sau 300ms
             }
         });
     }

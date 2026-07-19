@@ -30,25 +30,26 @@ public class TopBarController implements CanbusConnector.CanbusDataListener {
         }
     }
 
+    private String lastLog1 = "", lastLog2 = "", lastLog3 = "";
+
     @Override
     public void onDataReceived(int moduleId, int code, int value) {
-        // Lọc bỏ các mã dữ liệu thay đổi quá thường xuyên để dễ quan sát các mã khác
-        if (moduleId == 0) {
-            if (code == 101 || // Tốc độ
-                code == 41  || // Góc lái vô lăng
-                code == 139 || // Phanh tay / Trạng thái ổn định
-                code == 146    // Dữ liệu quét liên tục khác
-            ) {
-                return; 
-            }
-        }
+        // Lọc bỏ các mã gây nhiễu
+        if (moduleId == 0 && (code == 101 || code == 41 || code == 139 || code == 146)) return;
 
-        // Hiển thị các code và value "quan trọng" hoặc ít thay đổi lên TopBar để debug
-        activity.runOnUiThread(() -> {
-            if (tvCarId != null) {
-                tvCarId.setText(String.format(java.util.Locale.US, "M%d:C%d:V%d", moduleId, code, value));
-            }
-        });
+        // Lưu lịch sử 3 mã gần nhất
+        String newLog = String.format(java.util.Locale.US, "M%d:C%d:V%d", moduleId, code, value);
+        if (!newLog.equals(lastLog1)) {
+            lastLog3 = lastLog2;
+            lastLog2 = lastLog1;
+            lastLog1 = newLog;
+
+            activity.runOnUiThread(() -> {
+                if (tvCarId != null) {
+                    tvCarId.setText(String.format("%s | %s | %s", lastLog1, lastLog2, lastLog3));
+                }
+            });
+        }
         
         if (code == 1000) {
             android.util.Log.d("TopBarController", "Received Car ID: " + value);

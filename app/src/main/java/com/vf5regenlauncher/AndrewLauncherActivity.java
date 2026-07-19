@@ -76,17 +76,12 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     private final CanbusConnector.CanbusDataListener canbusKeyHandler = new CanbusConnector.CanbusDataListener() {
         @Override
         public void onDataReceived(int moduleId, int code, int value) {
-            // Module 0 thường chứa các sự kiện phím hệ thống
-            if (moduleId == 0) {
-                // Đã loại bỏ code 114 vì nó là cần số (Gears)
-                // Thử các mã phím cuộc gọi khác thường gặp: 7, 12, 115 (tùy firmware)
-                if ((code == 7 || code == 12) && value == 1) {
-                    Log.d("SCAN_DATA", "Intercepted Call Key | Code: " + code);
-                    if (dashboardController != null) {
-                        dashboardController.toggleRegenMode();
-                    }
-                }
-            }
+            // Tạm thời tắt logic này để dò mã chuẩn từ TopBar
+            // if (moduleId == 0) {
+            //     if ((code == 7 || code == 12) && value == 1) {
+            //         if (dashboardController != null) dashboardController.toggleRegenMode();
+            //     }
+            // }
         }
     };
 
