@@ -65,10 +65,18 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     private void handleSpecialIntents(Intent intent) {
-        if (intent != null && "com.syu.radio".equals(intent.getAction())) {
-            Log.d("SCAN_DATA", "Intercepted Mode Key (com.syu.radio)");
+        if (intent == null) return;
+        
+        String action = intent.getAction();
+        if ("com.syu.radio".equals(action)) {
+            Log.d("SCAN_DATA", "Intercepted Mode Key -> Toggle Drive Mode");
             if (dashboardController != null) {
                 dashboardController.toggleDriveMode();
+            }
+        } else if ("com.syu.bt".equals(action)) {
+            Log.d("SCAN_DATA", "Intercepted Call Key -> Toggle Regen Mode");
+            if (dashboardController != null) {
+                dashboardController.toggleRegenMode();
             }
         }
     }
@@ -76,12 +84,18 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     private final CanbusConnector.CanbusDataListener canbusKeyHandler = new CanbusConnector.CanbusDataListener() {
         @Override
         public void onDataReceived(int moduleId, int code, int value) {
-            // Tạm thời tắt logic này để dò mã chuẩn từ TopBar
-            // if (moduleId == 0) {
-            //     if ((code == 7 || code == 12) && value == 1) {
-            //         if (dashboardController != null) dashboardController.toggleRegenMode();
-            //     }
-            // }
+            // Theo dõi sát sao các mã nghi ngờ là phím Cuộc gọi hoặc Số lùi
+            if (moduleId == 0) {
+                if (code == 7 || code == 12 || code == 115) {
+                    Log.d("SCAN_DATA", "Suspicious Key Detected | Code: " + code + " | Value: " + value);
+                    
+                    // Thử nghiệm: Nếu code 7 hoặc 12 là nút Cuộc gọi, hãy thử toggle Regen
+                    // Nhưng chỉ làm khi value=1 (nhấn xuống)
+                    if (value == 1) {
+                        // dashboardController.toggleRegenMode();
+                    }
+                }
+            }
         }
     };
 

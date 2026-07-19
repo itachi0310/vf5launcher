@@ -43,9 +43,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Thêm bộ lọc cho phím Mode (Radio) -->
+            <!-- Thêm bộ lọc cho phím Mode (Radio) và phím Cuộc gọi (Bluetooth) -->
             <intent-filter android:priority="1000">
                 <action android:name="com.syu.radio" />
+                <action android:name="com.syu.bt" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

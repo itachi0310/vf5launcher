@@ -34,10 +34,18 @@ public class TopBarController implements CanbusConnector.CanbusDataListener {
 
     @Override
     public void onDataReceived(int moduleId, int code, int value) {
-        // Lọc bỏ các mã gây nhiễu
-        if (moduleId == 0 && (code == 101 || code == 41 || code == 139 || code == 146)) return;
+        // Lọc bỏ triệt để các mã dữ liệu cảm biến thay đổi liên tục
+        if (moduleId == 0) {
+            // Loại bỏ các mã từ 101 trở đi (Tốc độ, góc lái, cảm biến...) và các mã gây nhiễu
+            if ((code >= 101 && code <= 150) || code == 41 || code == 10 || code == 11) return;
+        }
+        
+        if (moduleId == 7) {
+            // Loại bỏ các thông số pin/nhiệt độ/quãng đường nhảy số liên tục
+            if (code == 114 || code == 113 || code == 115 || code == 120 || code == 109 || code == 110) return;
+        }
 
-        // Lưu lịch sử 3 mã gần nhất
+        // Chỉ hiển thị nếu giá trị thực sự thay đổi
         String newLog = String.format(java.util.Locale.US, "M%d:C%d:V%d", moduleId, code, value);
         if (!newLog.equals(lastLog1)) {
             lastLog3 = lastLog2;
@@ -49,10 +57,6 @@ public class TopBarController implements CanbusConnector.CanbusDataListener {
                     tvCarId.setText(String.format("%s | %s | %s", lastLog1, lastLog2, lastLog3));
                 }
             });
-        }
-        
-        if (code == 1000) {
-            android.util.Log.d("TopBarController", "Received Car ID: " + value);
         }
     }
 }
