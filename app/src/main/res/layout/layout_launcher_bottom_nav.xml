@@ -27,7 +27,8 @@
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Home" />
+            android:contentDescription="Home"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/btn_nav_apps"

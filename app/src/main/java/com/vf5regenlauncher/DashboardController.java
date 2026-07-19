@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
@@ -80,14 +81,28 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
         activity.runOnUiThread(() -> {
             // Module 0: Dữ liệu lái
             if (moduleId == 0) {
-                if (code == 101) { // Tốc độ
-                    tvSpeed.setText(String.valueOf(value));
-                } else if (code == 114 || code == 115 || code == 139) { // Số (Gears)
-                    updateGearDisplay(value);
-                } else {
-                    if ((code == 1 || code == 2 || code == 45) && value == 1) {
-                        toggleDriveMode();
-                    }
+                switch (code) {
+                    case 101: // Tốc độ
+                        tvSpeed.setText(String.valueOf(value));
+                        break;
+                    case 114: // Cần số (Gears)
+                        updateGearDisplay(value);
+                        break;
+                    case 115: // Chân phanh (Brake Pedal)
+                        updateBrakeDisplay(value == 1);
+                        break;
+                    case 139: // Phanh tay (Handbrake)
+                        // Có thể hiển thị icon phanh tay nếu cần
+                        break;
+                    case 4: // Thường là trạng thái Ready (Sẵn sàng)
+                    case 10:
+                        updateReadyStatus(value);
+                        break;
+                }
+                
+                // Logic cũ cho phím Mode nếu nó gửi qua module 0
+                if ((code == 1 || code == 2 || code == 45) && value == 1) {
+                    toggleDriveMode();
                 }
             } 
             // Module 7: Canbus / Air / Charging
@@ -168,18 +183,33 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
     }
 
     private void updateGearDisplay(int value) {
-        String gears = "P R N D";
+        // VF5 chỉ có R N D. Giả định giá trị từ Canbus là 1=R, 2=N, 3=D
+        String gears = "R N D";
         SpannableString spannable = new SpannableString(gears);
         int start = -1;
         switch (value) {
-            case 0: start = 0; break;
-            case 1: start = 2; break;
-            case 2: start = 4; break;
-            case 3: start = 6; break;
+            case 1: start = 0; break; // R
+            case 2: start = 2; break; // N
+            case 3: start = 4; break; // D
         }
         if (start != -1) {
             spannable.setSpan(new ForegroundColorSpan(Color.WHITE), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         tvGear.setText(spannable);
+    }
+
+    private void updateBrakeDisplay(boolean isPressed) {
+        if (tvSpeed != null) {
+            // Thay đổi màu chữ tốc độ thành đỏ khi đạp phanh để dễ nhận biết
+            tvSpeed.setTextColor(isPressed ? Color.RED : Color.WHITE);
+        }
+    }
+
+    private void updateReadyStatus(int value) {
+        // Log để bạn kiểm tra giá trị của code 4 hoặc 10
+        Log.d("SCAN_DATA", "System Status (Ready?): " + value);
+        
+        // Trên VF5, READY thường hiện khi xe đã khởi động xong.
+        // Bạn có thể gán logic này cho một TextView trên TopBar hoặc Dashboard
     }
 }

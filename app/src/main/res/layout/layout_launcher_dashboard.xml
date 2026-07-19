@@ -20,13 +20,13 @@
             android:orientation="vertical"
             android:padding="10dp">
 
-            <ImageView
-                android:id="@+id/iv_car_status"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@android:drawable/ic_menu_info_details"
-                android:alpha="0.6"
-                android:contentDescription="Status" />
+<!--            <ImageView-->
+<!--                android:id="@+id/iv_car_status"-->
+<!--                android:layout_width="30dp"-->
+<!--                android:layout_height="30dp"-->
+<!--                android:src="@android:drawable/ic_menu_info_details"-->
+<!--                android:alpha="0.6"-->
+<!--                android:contentDescription="Status" />-->
 
             <TextView
                 android:id="@+id/tv_launcher_speed"
@@ -50,7 +50,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="15dp"
-                android:text="P R N D"
+                android:text="R N D"
                 android:textColor="#444444"
                 android:textSize="22sp"
                 android:letterSpacing="0.8"/>

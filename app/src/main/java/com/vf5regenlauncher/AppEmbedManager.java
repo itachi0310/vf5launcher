@@ -173,24 +173,35 @@ public class AppEmbedManager {
                 // 1. Cập nhật thuộc tính hệ thống
                 setSystemProperty("sys.lsec.pip_rect", pipRect);
                 setSystemProperty("sys.lsec.pip_show", "1");
+                setSystemProperty("sys.lsec.pip_mode", "1");
                 
                 // 2. Gửi các tín hiệu ép hệ thống vẽ lại cửa sổ vào vùng rect
                 try {
-                    // Tín hiệu A: Ép tọa độ
                     Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
                     rectIntent.putExtra("pip_rect", pipRect);
-                    rectIntent.putExtra("rect", pipRect);
                     rectIntent.putExtra("show", true);
                     activity.sendBroadcast(rectIntent);
 
-                    // Tín hiệu B: Ép hiển thị gói ứng dụng hiện tại vào PIP
                     Intent showIntent = new Intent("com.syu.pip.show");
                     showIntent.putExtra("show", true);
                     showIntent.putExtra("packagename", currentPackage);
                     activity.sendBroadcast(showIntent);
+                    
+                    // Kỹ thuật "Kích hoạt ngầm": 
+                    // Gọi launch intent với cờ NO_ANIMATION và FROM_HISTORY 
+                    // để đưa Map về lại mà không giật màn hình
+                    PackageManager pm = activity.getPackageManager();
+                    Intent intent = pm.getLaunchIntentForPackage(currentPackage);
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
+                        activity.startActivity(intent);
+                    }
                 } catch (Exception ignored) {}
                 
-                Log.d(TAG, "✓ PIP refreshed via Broadcasts (Silent): " + pipRect);
+                Log.d(TAG, "✓ PIP refreshed and silently re-activated: " + pipRect);
             }
         });
     }
@@ -201,18 +212,24 @@ public class AppEmbedManager {
     public void hidePip() {
         Log.d(TAG, "Hiding PIP");
         setSystemProperty("sys.lsec.pip_show", "0");
+        setSystemProperty("sys.lsec.pip_mode", "0");
         
-        // Gửi broadcast thông báo ẩn cho hệ thống
+        // Gửi broadcast thông báo ẩn quyết liệt cho hệ thống
         try {
+            // Tắt show
             Intent showIntent = new Intent("com.syu.pip.show");
             showIntent.putExtra("show", false);
-            showIntent.putExtra("packagename", currentPackage);
+            showIntent.putExtra("packagename", ""); // Xóa package để giải phóng
             activity.sendBroadcast(showIntent);
 
-            // Xóa rect để tránh đè lên các app khác (một số firmware cần điều này)
+            // Đưa tọa độ về 0 để Map biến mất hoàn toàn, không đè Youtube
             Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
             rectIntent.putExtra("pip_rect", "0 0 0 0");
+            rectIntent.putExtra("show", false);
             activity.sendBroadcast(rectIntent);
+            
+            // Tín hiệu bổ sung cho các dòng máy khác
+            activity.sendBroadcast(new Intent("com.lsec.action.PIP_SHOW").putExtra("show", false));
         } catch (Exception ignored) {}
     }
 

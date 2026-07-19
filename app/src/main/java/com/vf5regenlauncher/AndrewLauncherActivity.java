@@ -78,9 +78,9 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         public void onDataReceived(int moduleId, int code, int value) {
             // Module 0 thường chứa các sự kiện phím hệ thống
             if (moduleId == 0) {
-                // Mã phím cuộc gọi trên một số dòng SYU VinFast là 7 hoặc 12 (nhấn xuống = 1)
-                // Hoặc code 114, 115
-                if ((code == 7 || code == 12 || code == 114) && value == 1) {
+                // Đã loại bỏ code 114 vì nó là cần số (Gears)
+                // Thử các mã phím cuộc gọi khác thường gặp: 7, 12, 115 (tùy firmware)
+                if ((code == 7 || code == 12) && value == 1) {
                     Log.d("SCAN_DATA", "Intercepted Call Key | Code: " + code);
                     if (dashboardController != null) {
                         dashboardController.toggleRegenMode();
