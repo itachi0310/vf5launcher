@@ -84,15 +84,13 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     private final CanbusConnector.CanbusDataListener canbusKeyHandler = new CanbusConnector.CanbusDataListener() {
         @Override
         public void onDataReceived(int moduleId, int code, int value) {
-            // Theo dõi sát sao các mã nghi ngờ là phím Cuộc gọi hoặc Số lùi
             if (moduleId == 0) {
-                if (code == 7 || code == 12 || code == 115) {
-                    Log.d("SCAN_DATA", "Suspicious Key Detected | Code: " + code + " | Value: " + value);
-                    
-                    // Thử nghiệm: Nếu code 7 hoặc 12 là nút Cuộc gọi, hãy thử toggle Regen
-                    // Nhưng chỉ làm khi value=1 (nhấn xuống)
-                    if (value == 1) {
-                        // dashboardController.toggleRegenMode();
+                // Thử nghiệm phím cuộc gọi qua code 7 hoặc 12 (nếu chúng là phím)
+                // Hoặc bất kỳ mã nào nhảy khi bạn nhấn phím Cuộc gọi
+                if ((code == 7 || code == 12) && value == 1) {
+                    Log.d("SCAN_DATA", "Call Key Intercepted via Canbus Code: " + code);
+                    if (dashboardController != null) {
+                        dashboardController.toggleRegenMode();
                     }
                 }
             }
@@ -188,22 +186,29 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Khi quay lại launcher, chỉ ép hiện vùng PIP (Không dùng startActivity để tránh nhảy app)
+        // Khi quay lại launcher, đảm bảo rect được update đúng
         if (appEmbedManager != null) {
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                appEmbedManager.refreshPipState();
-            }, 500); // Giảm delay xuống 500ms để Map hiện nhanh hơn
+            appEmbedManager.updatePipRect();
+            appEmbedManager.ensureMapRunning();
         }
+        // Setup listener để theo dõi khi mất/regain focus
+        getWindow().getDecorView().setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && appEmbedManager != null) {
+                Log.d("Launcher", "Launcher regained focus, updating PIP rect");
+                appEmbedManager.updatePipRect();
+                appEmbedManager.ensureMapRunning();
+            } else if (!hasFocus) {
+                Log.d("Launcher", "Launcher lost focus, maintaining PIP state");
+                // Không gọi hidePip() - để map ở background mode, không fullscreen
+            }
+        });
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        // Quan trọng: Ẩn PIP khi rời khỏi launcher để không đè lên các ứng dụng khác
-        // và để giải phóng focus giúp hiện bàn phím ở các app khác.
-        if (appEmbedManager != null) {
-            appEmbedManager.hidePip();
-        }
+        // Không gọi hidePip() - để map vẫn chạy ở background khi launcher không focus
+        Log.d("Launcher", "Launcher paused - map remains in background mode");
     }
 
     @Override

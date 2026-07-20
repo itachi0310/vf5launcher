@@ -87,7 +87,6 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
                         break;
                     case 7:  // Nghi vấn Cần số
                     case 12: // Nghi vấn Cần số
-                    case 114:
                         updateGearDisplay(value);
                         break;
                     case 115: // Chân phanh (Brake Pedal)
