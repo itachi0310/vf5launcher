@@ -163,19 +163,28 @@ public class AppEmbedManager {
             int count = 0;
             @Override
             public void run() {
-                if (count >= 3) return; // Gửi 3 lần
+                if (count >= 5) return; // Tăng lên 5 lần để đảm bảo hệ thống nhận
                 
                 int[] location = new int[2];
                 container.getLocationOnScreen(location);
+                int w = container.getWidth();
+                int h = container.getHeight();
+                
+                if (w <= 0 || h <= 0) {
+                    container.postDelayed(this, 200);
+                    return;
+                }
+
                 String pipRect = String.format(Locale.US, "%d %d %d %d", 
-                        location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
+                        location[0], location[1], location[0] + w, location[1] + h);
                 
                 // Ghi thuộc tính hệ thống
                 setSystemProperty("sys.lsec.pip_rect", pipRect);
                 setSystemProperty("sys.lsec.pip_show", "1");
                 setSystemProperty("sys.lsec.pip_mode", "1");
+                setSystemProperty("persist.launcher.packagename", currentPackage);
 
-                // Gửi Broadcast ép khung
+                // Gửi Broadcast ép khung - Thêm nhiều action phổ biến của SYU
                 try {
                     Intent showIntent = new Intent("com.syu.pip.show");
                     showIntent.putExtra("show", true);
@@ -186,12 +195,18 @@ public class AppEmbedManager {
                     Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
                     rectIntent.putExtra("pip_rect", pipRect);
                     rectIntent.putExtra("show", true);
+                    rectIntent.putExtra("packagename", currentPackage);
                     activity.sendBroadcast(rectIntent);
+
+                    // Ép app quay lại PIP nếu nó đang chạy full screen hoặc bị ẩn
+                    if (count == 0) {
+                        launchMapApp();
+                    }
                 } catch (Exception ignored) {}
 
                 Log.d(TAG, "✓ PIP Refresh attempt #" + (count + 1));
                 count++;
-                container.postDelayed(this, 300); // Lặp lại sau 300ms
+                container.postDelayed(this, 500); // Tăng khoảng cách delay để tránh nghẽn
             }
         });
     }
@@ -320,7 +335,9 @@ public class AppEmbedManager {
             intent.setAction(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            // Quan trọng: REORDER_TO_FRONT có thể gây bung full nếu app đang ở chế độ stack khác
+            // Sử dụng FLAG_ACTIVITY_SINGLE_TOP kết hợp với EXTRA để ép mode
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 
             // ⭐ NHỮNG FLAG QUAN TRỌNG NHẤT ĐỂ APP "CO" LẠI
@@ -331,13 +348,20 @@ public class AppEmbedManager {
             // Lấy tọa độ hiện tại của container để gửi kèm vào Intent
             int[] location = new int[2];
             container.getLocationOnScreen(location);
-            String currentRect = String.format(Locale.US, "%d %d %d %d", 
-                location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
-            intent.putExtra("pip_rect", currentRect);
+            int w = container.getWidth();
+            int h = container.getHeight();
+            
+            if (w > 0 && h > 0) {
+                String currentRect = String.format(Locale.US, "%d %d %d %d", 
+                    location[0], location[1], location[0] + w, location[1] + h);
+                intent.putExtra("pip_rect", currentRect);
+                intent.putExtra("rect", currentRect);
+            }
             
             // Thêm các key bổ sung mà một số app Map (Vietmap) yêu cầu
             intent.putExtra("com.syu.action.PIP", true);
             intent.putExtra("isPipMode", true);
+            intent.putExtra("fyt_pip_mode", 1);
 
             activity.startActivity(intent);
             Log.d(TAG, "✓ Launched map app with embedded flags: " + currentPackage);
