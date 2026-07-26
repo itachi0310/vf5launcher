@@ -174,19 +174,15 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Khi quay lại launcher, chỉ ép hiện vùng PIP (Không dùng startActivity để tránh nhảy app)
         if (appEmbedManager != null) {
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                appEmbedManager.refreshPipState();
-            }, 500); // Giảm delay xuống 500ms để Map hiện nhanh hơn
+            // Đảm bảo PIP hiện đúng vị trí sau khi Resume
+            appEmbedManager.showPip();
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        // Quan trọng: Ẩn PIP khi rời khỏi launcher để không đè lên các ứng dụng khác
-        // và để giải phóng focus giúp hiện bàn phím ở các app khác.
         if (appEmbedManager != null) {
             appEmbedManager.hidePip();
         }

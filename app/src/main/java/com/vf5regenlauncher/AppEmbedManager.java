@@ -5,27 +5,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.widget.FrameLayout;
 import java.lang.reflect.Method;
 import java.util.Locale;
 
 /**
- * Manages embedding map applications (Vietmap, Google Maps, etc.) into the Ember container.
- * 
- * Implementation based on FYT framework PIP (Picture-in-Picture) mechanism:
- * 1. Read app package from system property: persist.launcher.packagename
- * 2. Calculate container coordinates
- * 3. Set PIP rectangle: sys.lsec.pip_rect
- * 4. Launch app with force_pip flag
+ * Simplified AppEmbedManager following FYT/SYU framework flow.
  */
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
     private final Activity activity;
     private final FrameLayout container;
     private String currentPackage;
+    private String lastRect = "";
 
     public AppEmbedManager(Activity activity) {
         this.activity = activity;
@@ -33,68 +28,145 @@ public class AppEmbedManager {
         init();
     }
 
-    // === System Property Access (FYT Framework) ===
-    
-    private void setSystemProperty(String key, String value) {
-        boolean success = false;
+    private void init() {
+        if (container == null) return;
+
+        // Step 2: Read target package
+        determineMapPackage();
+
+        // Step 1 (Refinement): Measure and save for next boot
+        container.post(this::measureAndSaveCoordinates);
+    }
+
+    private void determineMapPackage() {
+        SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+        currentPackage = sp.getString("default_map_package", "");
+
+        if (currentPackage.isEmpty()) {
+            currentPackage = getSystemProperty("persist.launcher.packagename", "com.vietmap.vietmaplive");
+        }
         
-        // Method 1: Reflection on SystemProperties (Works for system apps)
+        if (currentPackage.isEmpty()) {
+            currentPackage = "com.vietmap.vietmaplive";
+        }
+        
+        // Sync back to system property
+        setSystemProperty("persist.launcher.packagename", currentPackage);
+        Log.d(TAG, "Target Map Package: " + currentPackage);
+    }
+
+    private void measureAndSaveCoordinates() {
+        int[] location = new int[2];
+        container.getLocationOnScreen(location);
+        int w = container.getWidth();
+        int h = container.getHeight();
+
+        if (w <= 0 || h <= 0) {
+            container.postDelayed(this::measureAndSaveCoordinates, 500);
+            return;
+        }
+
+        String rect = String.format(Locale.US, "%d %d %d %d", 
+                location[0], location[1], location[0] + w, location[1] + h);
+        
+        if (!rect.equals(lastRect)) {
+            lastRect = rect;
+            Log.d(TAG, "Saving PIP coordinates: " + rect);
+            
+            // Save for LauncherApplication's next boot
+            SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
+            sp.edit().putString("pip_rect", rect).apply();
+            
+            // Apply to current session
+            setSystemProperty("sys.lsec.pip_rect", rect);
+        }
+    }
+
+    /**
+     * Step 3 & 4: Logic for showing PIP
+     * Called in Activity.onResume()
+     */
+    public void showPip() {
+        if (currentPackage == null || currentPackage.isEmpty()) return;
+
+        Log.d(TAG, "Showing PIP for: " + currentPackage);
+        
+        // Ensure system properties are set
+        setSystemProperty("sys.lsec.pip_show", "1");
+        setSystemProperty("sys.lsec.pip_mode", "1");
+        
+        // Broadcasts for immediate update
+        sendPipBroadcast(true);
+
+        // Force launch into PIP area
+        launchMapInPip();
+    }
+
+    /**
+     * Logic for hiding PIP
+     * Called in Activity.onPause()
+     */
+    public void hidePip() {
+        Log.d(TAG, "Hiding PIP");
+        setSystemProperty("sys.lsec.pip_show", "0");
+        sendPipBroadcast(false);
+    }
+
+    private void launchMapInPip() {
+        try {
+            PackageManager pm = activity.getPackageManager();
+            Intent intent = pm.getLaunchIntentForPackage(currentPackage);
+            if (intent == null) return;
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+
+            // The magical flags
+            intent.putExtra("force_pip", true);
+            intent.putExtra("pip_mode", 1);
+            intent.putExtra("pip_show", true);
+            if (!lastRect.isEmpty()) {
+                intent.putExtra("pip_rect", lastRect);
+            }
+
+            activity.startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Error launching map", e);
+        }
+    }
+
+    private void sendPipBroadcast(boolean show) {
+        try {
+            Intent intent = new Intent("com.syu.pip.show");
+            intent.putExtra("show", show);
+            intent.putExtra("packagename", currentPackage);
+            if (show && !lastRect.isEmpty()) {
+                intent.putExtra("rect", lastRect);
+            }
+            activity.sendBroadcast(intent);
+
+            Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
+            rectIntent.putExtra("pip_rect", show ? lastRect : "0 0 0 0");
+            rectIntent.putExtra("show", show);
+            activity.sendBroadcast(rectIntent);
+        } catch (Exception ignored) {}
+    }
+
+    // === System Property Helpers ===
+
+    private void setSystemProperty(String key, String value) {
         try {
             Class<?> c = Class.forName("android.os.SystemProperties");
             Method set = c.getMethod("set", String.class, String.class);
             set.setAccessible(true);
             set.invoke(null, key, value);
-            Log.d(TAG, "✓ Set property via SystemProperties: " + key + " = " + value);
-            success = true;
         } catch (Exception e) {
-            // Expected on non-system apps for sys.* and persist.* properties
-            Log.w(TAG, "⚠ SystemProperties.set failed for " + key + " (" + value + "), trying fallbacks...");
-        }
-
-        // Method 2: Settings.System (Many FYT/SYU systems mirror properties here)
-        if (!success) {
+            // Fallback to Settings.System for non-privileged apps
             try {
                 android.provider.Settings.System.putString(activity.getContentResolver(), key, value);
-                Log.d(TAG, "✓ Set property via Settings.System: " + key + " = " + value);
-                success = true;
-            } catch (Exception e) {
-                // Usually requires WRITE_SETTINGS permission
-                Log.w(TAG, "⚠ Settings.System.putString failed for " + key);
-            }
+            } catch (Exception ignored) {}
         }
-
-        // Method 3: Intent Broadcast (Known backdoor for SYU/FYT systems)
-        try {
-            // Try common SYU/FYT broadcast actions
-            String[] actions = {
-                "com.syu.set_system_property",
-                "com.syu.ms.action.SET_PROP",
-                "com.syu.action.SET_PROP",
-                "com.lsec.action.SET_PROP",
-                "com.syu.action.SET_SYSTEM_PROPERTY"
-            };
-            
-            for (String action : actions) {
-                Intent intent = new Intent(action);
-                intent.putExtra("key", key);
-                intent.putExtra("value", value);
-                intent.putExtra("prop", key);
-                intent.putExtra("val", value);
-                intent.putExtra("PROPERTY", key);
-                intent.putExtra("VALUE", value);
-                activity.sendBroadcast(intent);
-            }
-            Log.d(TAG, "✓ Sent SYU/FYT fallback broadcasts for: " + key);
-        } catch (Exception ex) {
-            Log.e(TAG, "✗ Fallback broadcasts failed", ex);
-        }
-
-        // Method 4: Shell command (Last resort, works if app has root or if system is permissive)
-        try {
-            java.lang.Process process = Runtime.getRuntime().exec(new String[]{"setprop", key, value});
-            process.waitFor();
-            Log.d(TAG, "✓ Attempted setprop via shell: " + key);
-        } catch (Exception ignored) {}
     }
 
     private String getSystemProperty(String key, String def) {
@@ -102,298 +174,20 @@ public class AppEmbedManager {
             Class<?> c = Class.forName("android.os.SystemProperties");
             Method get = c.getMethod("get", String.class, String.class);
             get.setAccessible(true);
-            String result = (String) get.invoke(null, key, def);
-            Log.d(TAG, "✓ Read property: " + key + " = " + result);
-            return result;
+            return (String) get.invoke(null, key, def);
         } catch (Exception e) {
-            Log.e(TAG, "✗ Failed to read property: " + key, e);
             return def;
         }
     }
 
-    // === Initialization ===
-
-    private void init() {
-        if (container == null) {
-            Log.e(TAG, "✗ ERROR: container_main_app not found in layout!");
-            return;
-        }
-
-        // Step 1: Determine which map app to use
-        determineMapPackage();
-
-        if (currentPackage == null || currentPackage.isEmpty()) {
-            Log.e(TAG, "✗ No map app package available");
-            return;
-        }
-
-        Log.d(TAG, "Selected map app: " + currentPackage);
-
-        // Step 2: Wait for layout measurement, then setup PIP
-        container.post(this::setupAndLaunchPip);
-    }
-
-    private void determineMapPackage() {
-        // Priority 1: User's choice from app settings
-        SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-        currentPackage = sp.getString("default_map_package", null);
-
-        // Priority 2: System property (set by Settings activity)
-        if (currentPackage == null || currentPackage.isEmpty()) {
-            currentPackage = getSystemProperty("persist.launcher.packagename", "");
-        }
-
-        // Priority 3: Default to VietMap Live
-        if (currentPackage == null || currentPackage.isEmpty()) {
-            currentPackage = "com.vietmap.vietmaplive";
-            Log.d(TAG, "Using default map app: " + currentPackage);
-        }
-    }
-
-    // === PIP Setup ===
-
-    /**
-     * Refresh the PIP region settings and ensure the app is visible.
-     * Spam the commands multiple times to ensure the system applies the rect.
-     */
+    // Compat with previous calls
     public void refreshPipState() {
-        if (container == null) return;
-        
-        container.post(new Runnable() {
-            int count = 0;
-            @Override
-            public void run() {
-                if (count >= 5) return; // Tăng lên 5 lần để đảm bảo hệ thống nhận
-                
-                int[] location = new int[2];
-                container.getLocationOnScreen(location);
-                int w = container.getWidth();
-                int h = container.getHeight();
-                
-                if (w <= 0 || h <= 0) {
-                    container.postDelayed(this, 200);
-                    return;
-                }
-
-                String pipRect = String.format(Locale.US, "%d %d %d %d", 
-                        location[0], location[1], location[0] + w, location[1] + h);
-                
-                // Ghi thuộc tính hệ thống
-                setSystemProperty("sys.lsec.pip_rect", pipRect);
-                setSystemProperty("sys.lsec.pip_show", "1");
-                setSystemProperty("sys.lsec.pip_mode", "1");
-                setSystemProperty("persist.launcher.packagename", currentPackage);
-
-                // Gửi Broadcast ép khung - Thêm nhiều action phổ biến của SYU
-                try {
-                    Intent showIntent = new Intent("com.syu.pip.show");
-                    showIntent.putExtra("show", true);
-                    showIntent.putExtra("packagename", currentPackage);
-                    showIntent.putExtra("rect", pipRect);
-                    activity.sendBroadcast(showIntent);
-
-                    Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
-                    rectIntent.putExtra("pip_rect", pipRect);
-                    rectIntent.putExtra("show", true);
-                    rectIntent.putExtra("packagename", currentPackage);
-                    activity.sendBroadcast(rectIntent);
-
-                    // Ép app quay lại PIP nếu nó đang chạy full screen hoặc bị ẩn
-                    if (count == 0) {
-                        launchMapApp();
-                    }
-                } catch (Exception ignored) {}
-
-                Log.d(TAG, "✓ PIP Refresh attempt #" + (count + 1));
-                count++;
-                container.postDelayed(this, 500); // Tăng khoảng cách delay để tránh nghẽn
-            }
-        });
+        showPip();
     }
-
-    /**
-     * Hide the PIP window. Should be called when the launcher is not visible.
-     */
-    public void hidePip() {
-        Log.d(TAG, "Hiding PIP");
-        
-        // 1. Tắt các thuộc tính hệ thống
-        setSystemProperty("sys.lsec.pip_show", "0");
-        setSystemProperty("sys.lsec.pip_mode", "0");
-        setSystemProperty("sys.lsec.pip_touch", "0");
-        
-        // 2. Gửi broadcast thông báo ẩn quyết liệt cho hệ thống
-        try {
-            // Đưa tọa độ về 0 0 0 0 (Cực kỳ quan trọng để không đè Youtube)
-            Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
-            rectIntent.putExtra("pip_rect", "0 0 0 0");
-            rectIntent.putExtra("show", false);
-            activity.sendBroadcast(rectIntent);
-
-            // Gửi lệnh Show=false
-            Intent showIntent = new Intent("com.syu.pip.show");
-            showIntent.putExtra("show", false);
-            showIntent.putExtra("packagename", ""); 
-            activity.sendBroadcast(showIntent);
-            
-            // Tín hiệu bổ sung cho các dòng máy khác
-            activity.sendBroadcast(new Intent("com.lsec.action.PIP_SHOW").putExtra("show", false));
-        } catch (Exception ignored) {}
-    }
-
-    private void setupAndLaunchPip() {
-        if (container == null) {
-            Log.e(TAG, "Container is null, cannot setup PIP");
-            return;
-        }
-
-        // Measure container
-        int[] location = new int[2];
-        container.getLocationOnScreen(location);
-        int x = location[0];
-        int y = location[1];
-        int w = container.getWidth();
-        int h = container.getHeight();
-
-        Log.d(TAG, String.format("Container measured: x=%d, y=%d, w=%d, h=%d", x, y, w, h));
-
-        // Validate dimensions
-        if (w <= 0 || h <= 0) {
-            Log.w(TAG, "Container dimensions invalid, retrying...");
-            container.postDelayed(this::setupAndLaunchPip, 300);
-            return;
-        }
-
-        // Step A: Set PIP rectangle (format: "left top right bottom")
-        String pipRect = String.format(Locale.US, "%d %d %d %d", x, y, x + w, y + h);
-
-        // Apply settings immediately
-        applyPipSettings(pipRect);
-
-        // Step D: Launch the map app (delay 300ms for system to prepare)
-        new Handler(Looper.getMainLooper()).postDelayed(this::launchMapApp, 300);
-
-        // Hide loading text
-        android.view.View statusView = container.findViewById(R.id.tv_widget_status);
-        if (statusView != null) {
-            statusView.setVisibility(android.view.View.GONE);
-        }
-    }
-
-    private void applyPipSettings(String pipRect) {
-        Log.d(TAG, "Applying PIP Settings: " + pipRect);
-        
-        // 1. Ghi vào System Property (Ưu tiên cao nhất)
-        setSystemProperty("sys.lsec.pip_rect", pipRect);
-        setSystemProperty("persist.launcher.packagename", currentPackage);
-        setSystemProperty("sys.lsec.pip_show", "1");
-        setSystemProperty("sys.lsec.pip_mode", "1");
-        
-        // Bật touch cho vùng PIP
-        setSystemProperty("sys.lsec.pip_touch", "1");
-
-        // 3. Gửi Intent ép hệ thống cập nhật Layout ngay lập tức
-        try {
-            // Tín hiệu A: Cập nhật tọa độ và trạng thái
-            Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
-            rectIntent.putExtra("pip_rect", pipRect);
-            rectIntent.putExtra("rect", pipRect);
-            rectIntent.putExtra("show", true);
-            rectIntent.putExtra("packagename", currentPackage);
-            activity.sendBroadcast(rectIntent);
-
-            // Tín hiệu B: Ép hiển thị (Force Show)
-            Intent showIntent = new Intent("com.syu.pip.show");
-            showIntent.putExtra("show", true);
-            showIntent.putExtra("rect", pipRect);
-            showIntent.putExtra("packagename", currentPackage);
-            activity.sendBroadcast(showIntent);
-            
-            // Tín hiệu C: Dự phòng cho một số dòng firmware khác
-            Intent lsecIntent = new Intent("com.lsec.action.PIP_SHOW");
-            lsecIntent.putExtra("show", true);
-            lsecIntent.putExtra("rect", pipRect);
-            activity.sendBroadcast(lsecIntent);
-        } catch (Exception ignored) {}
-    }
-
-    // === App Launching ===
-
-    private void launchMapApp() {
-        if (currentPackage == null || currentPackage.isEmpty()) {
-            Log.e(TAG, "No package to launch");
-            return;
-        }
-
-        try {
-            PackageManager pm = activity.getPackageManager();
-            Intent intent = pm.getLaunchIntentForPackage(currentPackage);
-
-            if (intent == null) return;
-
-            // Configure intent
-            intent.setAction(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            // Quan trọng: REORDER_TO_FRONT có thể gây bung full nếu app đang ở chế độ stack khác
-            // Sử dụng FLAG_ACTIVITY_SINGLE_TOP kết hợp với EXTRA để ép mode
-            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-
-            // ⭐ NHỮNG FLAG QUAN TRỌNG NHẤT ĐỂ APP "CO" LẠI
-            intent.putExtra("force_pip", true);
-            intent.putExtra("pip_mode", 1);
-            intent.putExtra("pip_show", true);
-            
-            // Lấy tọa độ hiện tại của container để gửi kèm vào Intent
-            int[] location = new int[2];
-            container.getLocationOnScreen(location);
-            int w = container.getWidth();
-            int h = container.getHeight();
-            
-            if (w > 0 && h > 0) {
-                String currentRect = String.format(Locale.US, "%d %d %d %d", 
-                    location[0], location[1], location[0] + w, location[1] + h);
-                intent.putExtra("pip_rect", currentRect);
-                intent.putExtra("rect", currentRect);
-            }
-            
-            // Thêm các key bổ sung mà một số app Map (Vietmap) yêu cầu
-            intent.putExtra("com.syu.action.PIP", true);
-            intent.putExtra("isPipMode", true);
-            intent.putExtra("fyt_pip_mode", 1);
-
-            activity.startActivity(intent);
-            Log.d(TAG, "✓ Launched map app with embedded flags: " + currentPackage);
-
-        } catch (Exception e) {
-            Log.e(TAG, "Error launching map app", e);
-        }
-    }
-
-    // === Public API ===
-
-    /**
-     * Show the specified app in the PIP container without changing default settings
-     */
-    public void launchApp(String packageName) {
-        if (packageName == null || packageName.isEmpty()) {
-            Log.e(TAG, "Invalid package name");
-            return;
-        }
-
-        this.currentPackage = packageName;
-
-        // Chỉ nhúng và chạy, không lưu vào driving_prefs để tránh đổi app mặc định
-        setSystemProperty("persist.launcher.packagename", packageName);
-        launchMapApp();
-        Log.d(TAG, "Embedding app: " + packageName);
-    }
-
-    /**
-     * Get currently active map app package
-     */
-    public String getCurrentPackage() {
-        return currentPackage;
+    
+    public void launchApp(String pkg) {
+        this.currentPackage = pkg;
+        setSystemProperty("persist.launcher.packagename", pkg);
+        showPip();
     }
 }
