@@ -181,8 +181,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    protected void onStop() {
+        super.onStop();
         if (appEmbedManager != null) {
             appEmbedManager.hidePip();
         }

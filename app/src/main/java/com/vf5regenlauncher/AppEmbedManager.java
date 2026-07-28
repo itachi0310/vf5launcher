@@ -1,27 +1,29 @@
 package com.vf5regenlauncher;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.FrameLayout;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Locale;
 
 /**
- * Optimized AppEmbedManager for FYT/SYU framework.
- * Focuses on "forcing" existing activities back into the PIP area.
+ * AppEmbedManager matching com.syu.g.n and com.syu.g.o logic from reference launcher.
  */
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
     private final Activity activity;
     private final FrameLayout container;
     private String currentPackage;
-    private String lastRect = "";
+    private boolean isPipShown = false;
 
     public AppEmbedManager(Activity activity) {
         this.activity = activity;
@@ -32,6 +34,7 @@ public class AppEmbedManager {
     private void init() {
         if (container == null) return;
         determineMapPackage();
+        // Measure and save for next boot
         container.post(this::measureAndSaveCoordinates);
     }
 
@@ -43,8 +46,8 @@ public class AppEmbedManager {
         }
         if (currentPackage.isEmpty()) currentPackage = "com.vietmap.vietmaplive";
         
+        // Sync to system
         setSystemProperty("persist.launcher.packagename", currentPackage);
-        Log.d(TAG, "Target Map Package: " + currentPackage);
     }
 
     private void measureAndSaveCoordinates() {
@@ -61,118 +64,115 @@ public class AppEmbedManager {
         String rect = String.format(Locale.US, "%d %d %d %d", 
                 location[0], location[1], location[0] + w, location[1] + h);
         
-        if (!rect.equals(lastRect)) {
-            lastRect = rect;
-            Log.d(TAG, "Saving PIP coordinates: " + rect);
-            SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
-            sp.edit().putString("pip_rect", rect).apply();
-            
-            // Sync to system
-            setSystemProperty("sys.lsec.pip_rect", rect);
-        }
+        Log.d(TAG, "Saving PIP coordinates: " + rect);
+        SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
+        sp.edit().putString("pip_rect", rect).apply();
+        
+        // Match reference: only set rect, not show/mode
+        setSystemProperty("sys.lsec.pip_rect", rect);
     }
 
+    /**
+     * Logic from com.syu.g.n.a(View)
+     */
     public void showPip() {
         if (currentPackage == null || currentPackage.isEmpty()) return;
-
-        Log.d(TAG, "Enforcing PIP for: " + currentPackage);
         
-        // 1. Prepare system state (CRITICAL: Set before launching)
-        setSystemProperty("sys.lsec.pip_show", "1");
-        setSystemProperty("sys.lsec.pip_mode", "1");
-        setSystemProperty("sys.lsec.pip_touch", "1"); // Ensure touch works in PIP
-        
-        // 2. Broadcast current state
-        sendPipBroadcast(true);
-
-        // 3. Force the app back into the designated area
-        launchMapInPip();
-    }
-
-    public void hidePip() {
-        Log.d(TAG, "Hiding PIP area");
-        setSystemProperty("sys.lsec.pip_show", "0");
-        setSystemProperty("sys.lsec.pip_touch", "0");
-        sendPipBroadcast(false);
-    }
-
-    private void launchMapInPip() {
-        try {
-            PackageManager pm = activity.getPackageManager();
-            Intent intent = pm.getLaunchIntentForPackage(currentPackage);
-            if (intent == null) return;
-
-            // Flags to handle existing activities and "re-embedding" them
-            intent.setAction(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT); // Helps bring hidden task to front correctly
-            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-
-            // ⭐ THE COMPREHENSIVE PIP EXTRAS
-            intent.putExtra("force_pip", true);
-            intent.putExtra("pip_mode", 1);
-            intent.putExtra("pip_show", true);
-            intent.putExtra("fyt_pip_mode", 1);
-            intent.putExtra("isPipMode", true);
-            intent.putExtra("com.syu.action.PIP", true);
-            
-            if (!lastRect.isEmpty()) {
-                intent.putExtra("pip_rect", lastRect);
-                intent.putExtra("rect", lastRect); // Some apps use "rect" instead of "pip_rect"
-            }
-
-            activity.startActivity(intent);
-            Log.d(TAG, "✓ StartActivity sent with PIP flags");
-        } catch (Exception e) {
-            Log.e(TAG, "Error enforcing PIP launch", e);
+        if (isPipShown) {
+            Log.d(TAG, "PIP already shown, skipping startActivity");
+            return;
         }
-    }
 
-    private void sendPipBroadcast(boolean show) {
-        try {
-            // General SYU PIP Show broadcast
-            Intent intent = new Intent("com.syu.pip.show");
-            intent.putExtra("show", show);
-            intent.putExtra("packagename", currentPackage);
-            if (show && !lastRect.isEmpty()) {
-                intent.putExtra("rect", lastRect);
+        Log.d(TAG, "Starting PIP for: " + currentPackage);
+        isPipShown = true;
+        
+        // Match com.syu.g.o logic
+        new Thread(() -> {
+            Intent intent = createMapIntent(currentPackage);
+            if (intent != null) {
+                intent.putExtra("force_pip", true);
+                try {
+                    activity.startActivity(intent);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to start map activity", e);
+                    isPipShown = false;
+                }
+            } else {
+                isPipShown = false;
             }
-            activity.sendBroadcast(intent);
-
-            // SYU Rect update broadcast
-            Intent rectIntent = new Intent("com.syu.action.PIP_RECT");
-            rectIntent.putExtra("pip_rect", show ? lastRect : "0 0 0 0");
-            rectIntent.putExtra("show", show);
-            rectIntent.putExtra("packagename", currentPackage);
-            activity.sendBroadcast(rectIntent);
-        } catch (Exception ignored) {}
+        }).start();
     }
 
-    // === System Property Helpers with Broadcast Backdoor ===
+    /**
+     * Logic from com.syu.g.n.b(View)
+     */
+    public void hidePip() {
+        if (!isPipShown) return;
+
+        Log.d(TAG, "Hiding PIP stack");
+        try {
+            Object am = null;
+            try {
+                Method getService = activity.getSystemService(Context.ACTIVITY_SERVICE).getClass().getMethod("getService");
+                am = getService.invoke(null);
+            } catch (Exception ignored) {}
+
+            if (am == null) {
+                try {
+                    Class<?> amnClass = Class.forName("android.app.ActivityManagerNative");
+                    Method getDefault = amnClass.getMethod("getDefault");
+                    am = getDefault.invoke(null);
+                } catch (Exception ignored) {}
+            }
+
+            if (am != null) {
+                Method setPinnedStackVisible = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+                setPinnedStackVisible.invoke(am, false);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to hide PIP via reflection", e);
+        }
+        isPipShown = false;
+    }
+
+    /**
+     * Match com.syu.g.g.a(Context, String) logic
+     */
+    private Intent createMapIntent(String pkg) {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.setPackage(pkg);
+        
+        PackageManager pm = activity.getPackageManager();
+        List<ResolveInfo> activities = pm.queryIntentActivities(intent, 0);
+        
+        for (ResolveInfo ri : activities) {
+            if (ri.activityInfo.packageName.equals(pkg)) {
+                Intent launchIntent = new Intent(Intent.ACTION_MAIN);
+                // Exact flags from reference: 270532608 = 0x10200000
+                // FLAG_ACTIVITY_NEW_TASK (0x10000000) | FLAG_ACTIVITY_RESET_TASK_IF_NEEDED (0x00200000)
+                launchIntent.setFlags(270532608);
+                launchIntent.setComponent(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name));
+                return launchIntent;
+            }
+        }
+        
+        // Fallback
+        return pm.getLaunchIntentForPackage(pkg);
+    }
+
+    // === System Property Helpers ===
 
     private void setSystemProperty(String key, String value) {
-        // Attempt 1: Reflection
         try {
             Class<?> c = Class.forName("android.os.SystemProperties");
             Method set = c.getMethod("set", String.class, String.class);
             set.setAccessible(true);
             set.invoke(null, key, value);
         } catch (Exception e) {
-            // Attempt 2: Settings.System
             try {
                 android.provider.Settings.System.putString(activity.getContentResolver(), key, value);
             } catch (Exception ignored) {}
         }
-        
-        // Attempt 3: FYT/SYU Broadcast Backdoor (Most reliable for non-system apps)
-        try {
-            Intent intent = new Intent("com.syu.set_system_property");
-            intent.putExtra("key", key);
-            intent.putExtra("value", value);
-            activity.sendBroadcast(intent);
-        } catch (Exception ignored) {}
     }
 
     private String getSystemProperty(String key, String def) {
@@ -193,6 +193,7 @@ public class AppEmbedManager {
     public void launchApp(String pkg) {
         this.currentPackage = pkg;
         setSystemProperty("persist.launcher.packagename", pkg);
+        isPipShown = false; // Force re-launch
         showPip();
     }
 }
