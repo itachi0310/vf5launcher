@@ -17,7 +17,7 @@ import java.util.Locale;
 
 /**
  * Robust AppEmbedManager for FYT/SYU Framework.
- * Uses a combination of reference flags and repeated state enforcement.
+ * Incorporates logic from project17 (sys.lsec.force_pip).
  */
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
@@ -32,7 +32,7 @@ public class AppEmbedManager {
         this.activity = activity;
         this.container = activity.findViewById(R.id.container_main_app);
         
-        // Load last known rect immediately to avoid empty rect on first resume
+        // Load last known rect immediately
         SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
         this.lastRect = sp.getString("pip_rect", "");
         
@@ -81,7 +81,7 @@ public class AppEmbedManager {
     }
 
     /**
-     * Shows PIP and enforces the state via a small loop to prevent full-screen takeover.
+     * Shows PIP and enforces the state.
      */
     public void showPip() {
         if (currentPackage == null || currentPackage.isEmpty()) return;
@@ -92,29 +92,34 @@ public class AppEmbedManager {
         if (!lastRect.isEmpty()) {
             setSystemProperty("sys.lsec.pip_rect", lastRect);
         }
+        
+        // Key property from project17
+        setSystemProperty("sys.lsec.force_pip", "true");
         setSystemProperty("sys.lsec.pip_show", "1");
         setSystemProperty("sys.lsec.pip_mode", "1");
 
-        // 2. Start map in a thread as per reference o.java
+        // 2. Start map in a thread
         new Thread(() -> {
-            Intent intent = createMapIntent(currentPackage);
-            if (intent != null) {
-                intent.putExtra("force_pip", true);
-                if (!lastRect.isEmpty()) {
-                    intent.putExtra("pip_rect", lastRect);
-                }
+            try {
+                // Strategic delay like project17
+                Thread.sleep(100);
                 
-                try {
+                Intent intent = createMapIntent(currentPackage);
+                if (intent != null) {
+                    intent.putExtra("force_pip", true);
+                    if (!lastRect.isEmpty()) {
+                        intent.putExtra("pip_rect", lastRect);
+                    }
+                    
                     activity.startActivity(intent);
                     isPipShown = true;
                     
-                    // 3. Repeatedly enforce PIP state for the next 1.5 seconds
-                    // This prevents the app from popping back to full screen during transition
+                    // 3. Repeatedly enforce PIP state
                     enforcePipState(3); 
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to start map activity", e);
-                    isPipShown = false;
                 }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to start map activity", e);
+                isPipShown = false;
             }
         }).start();
     }
@@ -128,8 +133,9 @@ public class AppEmbedManager {
             // Send broadcasts to force framework update
             sendPipBroadcast(true);
             
-            // Re-set system properties just in case
+            // Re-set system properties
             setSystemProperty("sys.lsec.pip_show", "1");
+            setSystemProperty("sys.lsec.force_pip", "true");
             
             Log.d(TAG, "Enforcing PIP state, retries left: " + (retries - 1));
             enforcePipState(retries - 1);
@@ -141,6 +147,7 @@ public class AppEmbedManager {
         isPipShown = false;
         
         setSystemProperty("sys.lsec.pip_show", "0");
+        setSystemProperty("sys.lsec.force_pip", "false");
         sendPipBroadcast(false);
         
         // Explicitly hide stack via reflection
@@ -160,8 +167,10 @@ public class AppEmbedManager {
             }
 
             if (am != null) {
-                Method setPinnedStackVisible = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
-                setPinnedStackVisible.invoke(am, false);
+                try {
+                    Method setPinnedStackVisible = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+                    setPinnedStackVisible.invoke(am, false);
+                } catch (Exception ignored) {}
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to hide stack via reflection", e);
@@ -178,7 +187,7 @@ public class AppEmbedManager {
         for (ResolveInfo ri : activities) {
             if (ri.activityInfo.packageName.equals(pkg)) {
                 Intent launchIntent = new Intent(Intent.ACTION_MAIN);
-                // Flag 270532608 = 0x10200000 (NEW_TASK | RESET_TASK_IF_NEEDED)
+                // Flag 270532608 = 0x10200000
                 launchIntent.setFlags(270532608);
                 launchIntent.setComponent(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name));
                 return launchIntent;
