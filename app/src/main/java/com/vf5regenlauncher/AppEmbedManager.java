@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Robust AppEmbedManager for FYT/SYU Framework.
- * Incorporates logic from project17 (sys.lsec.force_pip).
+ * Enhanced AppEmbedManager using "Double-Force" strategy.
+ * Combines Intent Flags with direct Stack Manipulation.
  */
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
@@ -32,7 +32,6 @@ public class AppEmbedManager {
         this.activity = activity;
         this.container = activity.findViewById(R.id.container_main_app);
         
-        // Load last known rect immediately
         SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
         this.lastRect = sp.getString("pip_rect", "");
         
@@ -42,7 +41,6 @@ public class AppEmbedManager {
     private void init() {
         if (container == null) return;
         determineMapPackage();
-        // Measure and save for next boot
         container.post(this::measureAndSaveCoordinates);
     }
 
@@ -80,48 +78,43 @@ public class AppEmbedManager {
         }
     }
 
-    /**
-     * Shows PIP and enforces the state.
-     */
     public void showPip() {
         if (currentPackage == null || currentPackage.isEmpty()) return;
 
         Log.d(TAG, "showPip() called for: " + currentPackage);
         
-        // 1. Prepare system properties
-        if (!lastRect.isEmpty()) {
-            setSystemProperty("sys.lsec.pip_rect", lastRect);
-        }
-        
-        // Key property from project17
+        // 1. Force system properties BEFORE launch
+        setSystemProperty("sys.lsec.pip_rect", lastRect);
         setSystemProperty("sys.lsec.force_pip", "true");
         setSystemProperty("sys.lsec.pip_show", "1");
         setSystemProperty("sys.lsec.pip_mode", "1");
+        setSystemProperty("sys.lsec.pip_touch", "1");
 
-        // 2. Start map in a thread
-        new Thread(() -> {
-            try {
-                // Strategic delay like project17
-                Thread.sleep(100);
-                
+        // 2. Launch Map after a small delay to allow properties to settle
+        mainHandler.postDelayed(() -> {
+            new Thread(() -> {
                 Intent intent = createMapIntent(currentPackage);
                 if (intent != null) {
                     intent.putExtra("force_pip", true);
-                    if (!lastRect.isEmpty()) {
-                        intent.putExtra("pip_rect", lastRect);
+                    intent.putExtra("pip_rect", lastRect);
+                    intent.putExtra("pip_mode", 1);
+                    
+                    try {
+                        activity.startActivity(intent);
+                        isPipShown = true;
+                        
+                        // 3. Force Stack Visibility (The "Double-Force" part)
+                        setPinnedStackVisible(true);
+                        
+                        // 4. Repeatedly enforce PIP state
+                        enforcePipState(3); 
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to start map activity", e);
+                        isPipShown = false;
                     }
-                    
-                    activity.startActivity(intent);
-                    isPipShown = true;
-                    
-                    // 3. Repeatedly enforce PIP state
-                    enforcePipState(3); 
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to start map activity", e);
-                isPipShown = false;
-            }
-        }).start();
+            }).start();
+        }, 200);
     }
 
     private void enforcePipState(int retries) {
@@ -130,12 +123,10 @@ public class AppEmbedManager {
         mainHandler.postDelayed(() -> {
             if (!isPipShown) return;
             
-            // Send broadcasts to force framework update
             sendPipBroadcast(true);
-            
-            // Re-set system properties
             setSystemProperty("sys.lsec.pip_show", "1");
             setSystemProperty("sys.lsec.force_pip", "true");
+            setPinnedStackVisible(true); // Force it back if it tried to bung
             
             Log.d(TAG, "Enforcing PIP state, retries left: " + (retries - 1));
             enforcePipState(retries - 1);
@@ -150,7 +141,10 @@ public class AppEmbedManager {
         setSystemProperty("sys.lsec.force_pip", "false");
         sendPipBroadcast(false);
         
-        // Explicitly hide stack via reflection
+        setPinnedStackVisible(false);
+    }
+
+    private void setPinnedStackVisible(boolean visible) {
         try {
             Object am = null;
             try {
@@ -167,13 +161,12 @@ public class AppEmbedManager {
             }
 
             if (am != null) {
-                try {
-                    Method setPinnedStackVisible = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
-                    setPinnedStackVisible.invoke(am, false);
-                } catch (Exception ignored) {}
+                Method setPinnedStackVisible = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+                setPinnedStackVisible.invoke(am, visible);
+                Log.d(TAG, "✓ setPinnedStackVisible(" + visible + ") success");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to hide stack via reflection", e);
+            Log.e(TAG, "Failed to set stack visibility", e);
         }
     }
 
