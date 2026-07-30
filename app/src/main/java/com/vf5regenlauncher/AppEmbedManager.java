@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Enhanced AppEmbedManager using "Double-Force" strategy.
- * Combines Intent Flags with direct Stack Manipulation.
+ * Optimized AppEmbedManager to fix the "Full Screen Bung" issue.
+ * Focuses on aggressive stack enforcement when returning from Drawer/Other Apps.
  */
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
@@ -25,7 +25,6 @@ public class AppEmbedManager {
     private final FrameLayout container;
     private String currentPackage;
     private String lastRect = "";
-    private boolean isPipShown = false;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public AppEmbedManager(Activity activity) {
@@ -78,69 +77,67 @@ public class AppEmbedManager {
         }
     }
 
+    /**
+     * Always force PIP when called. No checks for isPipShown to ensure correction.
+     */
     public void showPip() {
         if (currentPackage == null || currentPackage.isEmpty()) return;
 
-        Log.d(TAG, "showPip() called for: " + currentPackage);
+        Log.d(TAG, "showPip() - Forcing PIP state for: " + currentPackage);
         
-        // 1. Force system properties BEFORE launch
+        // 1. Prepare system properties
         setSystemProperty("sys.lsec.pip_rect", lastRect);
         setSystemProperty("sys.lsec.force_pip", "true");
         setSystemProperty("sys.lsec.pip_show", "1");
         setSystemProperty("sys.lsec.pip_mode", "1");
-        setSystemProperty("sys.lsec.pip_touch", "1");
+        
+        // 2. Pre-open the stack visibility
+        setPinnedStackVisible(true);
 
-        // 2. Launch Map after a small delay to allow properties to settle
+        // 3. Launch Map with a delay to ensure Drawer is closed and properties are ready
         mainHandler.postDelayed(() -> {
             new Thread(() -> {
                 Intent intent = createMapIntent(currentPackage);
                 if (intent != null) {
+                    // Critical Extras
                     intent.putExtra("force_pip", true);
                     intent.putExtra("pip_rect", lastRect);
                     intent.putExtra("pip_mode", 1);
+                    intent.putExtra("isPipMode", true);
                     
                     try {
+                        Log.d(TAG, "✓ Executing startActivity for PIP");
                         activity.startActivity(intent);
-                        isPipShown = true;
                         
-                        // 3. Force Stack Visibility (The "Double-Force" part)
-                        setPinnedStackVisible(true);
-                        
-                        // 4. Repeatedly enforce PIP state
-                        enforcePipState(3); 
+                        // 4. Multiple follow-up enforcements
+                        enforcePipState(4); 
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to start map activity", e);
-                        isPipShown = false;
                     }
                 }
             }).start();
-        }, 200);
+        }, 300); // 300ms delay is standard for FYT transitions
     }
 
     private void enforcePipState(int retries) {
         if (retries <= 0) return;
         
         mainHandler.postDelayed(() -> {
-            if (!isPipShown) return;
-            
             sendPipBroadcast(true);
             setSystemProperty("sys.lsec.pip_show", "1");
             setSystemProperty("sys.lsec.force_pip", "true");
-            setPinnedStackVisible(true); // Force it back if it tried to bung
+            setPinnedStackVisible(true); 
             
-            Log.d(TAG, "Enforcing PIP state, retries left: " + (retries - 1));
+            Log.d(TAG, "Enforcing PIP state loop, remaining: " + (retries - 1));
             enforcePipState(retries - 1);
-        }, 500);
+        }, 400);
     }
 
     public void hidePip() {
-        Log.d(TAG, "hidePip() called");
-        isPipShown = false;
-        
+        Log.d(TAG, "hidePip() - Clearing state");
         setSystemProperty("sys.lsec.pip_show", "0");
         setSystemProperty("sys.lsec.force_pip", "false");
         sendPipBroadcast(false);
-        
         setPinnedStackVisible(false);
     }
 
@@ -163,10 +160,9 @@ public class AppEmbedManager {
             if (am != null) {
                 Method setPinnedStackVisible = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
                 setPinnedStackVisible.invoke(am, visible);
-                Log.d(TAG, "✓ setPinnedStackVisible(" + visible + ") success");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to set stack visibility", e);
+            Log.e(TAG, "Reflection failed for setPinnedStackVisible", e);
         }
     }
 
@@ -180,8 +176,9 @@ public class AppEmbedManager {
         for (ResolveInfo ri : activities) {
             if (ri.activityInfo.packageName.equals(pkg)) {
                 Intent launchIntent = new Intent(Intent.ACTION_MAIN);
-                // Flag 270532608 = 0x10200000
-                launchIntent.setFlags(270532608);
+                // Flag combination: NEW_TASK (0x10000000) | RESET_TASK_IF_NEEDED (0x00200000) | REORDER_TO_FRONT (0x00020000)
+                // 270532608 + 131072 = 270663680
+                launchIntent.setFlags(270663680);
                 launchIntent.setComponent(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name));
                 return launchIntent;
             }
@@ -217,7 +214,6 @@ public class AppEmbedManager {
                 android.provider.Settings.System.putString(activity.getContentResolver(), key, value);
             } catch (Exception ignored) {}
         }
-        // Broadcast backdoor
         try {
             Intent intent = new Intent("com.syu.set_system_property");
             intent.putExtra("key", key);
