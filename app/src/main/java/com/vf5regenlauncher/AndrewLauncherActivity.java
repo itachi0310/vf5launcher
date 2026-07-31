@@ -1,6 +1,8 @@
 package com.vf5regenlauncher;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -56,12 +58,38 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         
         // Kiểm tra nếu Activity được mở bởi phím Mode (Intent Radio)
         handleSpecialIntents(getIntent());
+
+        // Lắng nghe tín hiệu PIP bị chết để khôi phục
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("com.lsec.pipdie");
+        registerReceiver(pipDieReceiver, filter);
     }
+
+    private final android.content.BroadcastReceiver pipDieReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context context, Intent intent) {
+            if ("com.lsec.pipdie".equals(intent.getAction())) {
+                Log.d("Launcher", "PIP died, restarting...");
+                if (appEmbedManager != null) {
+                    AppEmbedManager.b = false; // Reset flag để cho phép mở lại
+                    appEmbedManager.showPip();
+                }
+            }
+        }
+    };
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         handleSpecialIntents(intent);
+        
+        // Match Launcher.onNewIntent() logic for Home button
+        if (intent != null && Intent.ACTION_MAIN.equals(intent.getAction())) {
+            if (appEmbedManager != null) {
+                appEmbedManager.hidePip();
+                appEmbedManager.showPip();
+            }
+        }
     }
 
     private void handleSpecialIntents(Intent intent) {
@@ -142,8 +170,14 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
     public void openSystemAppList() {
         Log.d("Launcher", "Opening System App List...");
+        
+        // Cực kỳ quan trọng: Phải ẩn PIP TRƯỚC khi mở App List
+        if (appEmbedManager != null) {
+            appEmbedManager.hidePip();
+        }
+
         try {
-            // Thử mở trực tiếp Activity Launcher của SYU (Cách này rất hiệu quả nếu Broadcast bị chặn)
+            // Thử mở trực tiếp Activity Launcher của SYU
             Intent syuLauncher = new Intent();
             syuLauncher.setComponent(new android.content.ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
             syuLauncher.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -172,11 +206,22 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if (appEmbedManager != null) {
+            // Match original Launcher.onStart() logic
+            appEmbedManager.refreshPackageName();
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (appEmbedManager != null) {
-            // Đảm bảo PIP hiện đúng vị trí sau khi Resume
-            appEmbedManager.showPip();
+            // Thêm delay 200ms để hệ thống ổn định Stack sau khi Resume
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                appEmbedManager.showPip();
+            }, 200);
         }
     }
 
@@ -184,6 +229,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         if (appEmbedManager != null) {
+            // Match original Launcher.onStop() logic
             appEmbedManager.hidePip();
         }
     }

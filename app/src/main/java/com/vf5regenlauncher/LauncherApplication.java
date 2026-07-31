@@ -13,35 +13,14 @@ public class LauncherApplication extends Application {
     public void onCreate() {
         super.onCreate();
         
-        // Ensure system knows we have PIP capability
-        setSystemProperty("persist.syu.launcher.haspip", "true");
-
-        // Set PIP rectangle from saved coordinates or defaults
-        SharedPreferences sp = getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
-        String savedRect = sp.getString("pip_rect", "");
+        // Match original LauncherApplication.onCreate() logic
+        SystemPropertiesUtil.set("persist.syu.launcher.haspip", "true");
         
-        if (!savedRect.isEmpty()) {
-            Log.d(TAG, "Restoring saved PIP rect: " + savedRect);
-            setSystemProperty("sys.lsec.pip_rect", savedRect);
+        android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        if (displayMetrics.widthPixels == 1280 && displayMetrics.heightPixels == 720) {
+            SystemPropertiesUtil.set("sys.lsec.pip_rect", "128 88 802 474");
         } else {
-            // Match reference launcher defaults
-            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-            if (metrics.widthPixels == 1280 && metrics.heightPixels == 720) {
-                setSystemProperty("sys.lsec.pip_rect", "128 88 802 474");
-            } else {
-                setSystemProperty("sys.lsec.pip_rect", "98 76 656 396");
-            }
-        }
-    }
-
-    private void setSystemProperty(String key, String value) {
-        try {
-            Class<?> c = Class.forName("android.os.SystemProperties");
-            Method set = c.getMethod("set", String.class, String.class);
-            set.setAccessible(true);
-            set.invoke(null, key, value);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to set property: " + key, e);
+            SystemPropertiesUtil.set("sys.lsec.pip_rect", "98 76 656 396");
         }
     }
 }
