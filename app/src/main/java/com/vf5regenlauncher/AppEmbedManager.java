@@ -33,6 +33,13 @@ public class AppEmbedManager {
     public AppEmbedManager(Activity activity) {
         this.activity = activity;
         this.container = activity.findViewById(R.id.container_main_app);
+        if (this.container != null) {
+            this.container.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                if (left != oldLeft || top != oldTop || right != oldRight || bottom != oldBottom) {
+                    measureAndSaveCoordinates();
+                }
+            });
+        }
         c = new Intent();
         refreshPackageName();
     }
@@ -82,44 +89,55 @@ public class AppEmbedManager {
 
         Log.d(TAG, "showPip (startMapPip): " + f541a);
         
-        // 1. Prepare system context IMMEDIATELY (Before Thread)
+        // 1. Re-enforce PIP coordinates from storage BEFORE starting
+        // This addresses the issue where coordinates might be lost during hidePip or resume
+        SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
+        String savedRect = sp.getString("pip_rect", "");
+        if (!savedRect.isEmpty()) {
+            Log.d(TAG, "Restoring PIP rect: " + savedRect);
+            SystemPropertiesUtil.set("sys.lsec.pip_rect", savedRect);
+        } else {
+            // If no saved rect, try to measure now
+            measureAndSaveCoordinates();
+        }
+        
+        // 2. Prepare system context
         SystemPropertiesUtil.set("sys.lsec.force_pip", "true");
         SystemPropertiesUtil.set("sys.lsec.pip_show", "1");
         
-        new Thread(() -> {
-            try {
-                // Port of com.syu.util.WindowUtil strategy:
-                // Use a handler to schedule the startActivity with a small delay
-                mainHandler.postDelayed(() -> {
-                    c = createMapIntent(f541a);
-                    if (c != null) {
-                        if (f541a.equals("com.syu.camera360")) {
-                            activity.sendBroadcast(new Intent("com.syu.camera360.show"));
-                        }
+        // Use a slight delay on MainThread to ensure system properties settle
+        mainHandler.postDelayed(() -> {
+            c = createMapIntent(f541a);
+            if (c != null) {
+                if (f541a.equals("com.syu.camera360")) {
+                    activity.sendBroadcast(new Intent("com.syu.camera360.show"));
+                }
 
-                        c.putExtra("force_pip", true);
-                        // Add legacy keys for broader compatibility
-                        c.putExtra("pip_mode", 1);
-                        c.putExtra("isPipMode", true);
-                        
-                        try {
-                            // Ensure stack is visible just before starting
-                            setPinnedStackVisible(true);
-                            
-                            activity.startActivity(c);
-                            Log.d(TAG, "✓ startActivity for PIP executed from Handler");
-                            
-                            // Re-enforce visibility shortly after launch
-                            mainHandler.postDelayed(() -> setPinnedStackVisible(true), 200);
-                        } catch (Exception e) {
-                            Log.e(TAG, "Failed to startActivity", e);
+                c.putExtra("force_pip", true);
+                c.putExtra("pip_mode", 1);
+                c.putExtra("isPipMode", true);
+                
+                try {
+                    // Ensure stack is visible just before starting
+                    setPinnedStackVisible(true);
+                    
+                    activity.startActivity(c);
+                    Log.d(TAG, "✓ startActivity for PIP executed");
+                    
+                    // Re-enforce visibility shortly after launch
+                    mainHandler.postDelayed(() -> {
+                        setPinnedStackVisible(true);
+                        // Also re-set rect just in case the system cleared it during transition
+                        if (!savedRect.isEmpty()) {
+                            SystemPropertiesUtil.set("sys.lsec.pip_rect", savedRect);
                         }
-                    }
-                }, 50); // 50ms is enough to let properties settle
-            } catch (Exception e) {
-                Log.e(TAG, "Thread error in showPip", e);
+                    }, 300);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to startActivity", e);
+                }
             }
-        }).start();
+        }, 100); 
+
         b = true;
     }
 
