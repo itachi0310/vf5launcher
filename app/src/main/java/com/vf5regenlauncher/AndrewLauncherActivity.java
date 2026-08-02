@@ -82,13 +82,16 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         handleSpecialIntents(intent);
-        
-        // Match Launcher.onNewIntent() logic for Home button
-        if (intent != null && Intent.ACTION_MAIN.equals(intent.getAction())) {
-            if (appEmbedManager != null) {
-                appEmbedManager.hidePip();
-                appEmbedManager.showPip();
-            }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        // Xử lý triệt để trong onRestart như gợi ý:
+        // Ngay khi Launcher bắt đầu khởi động lại, chuẩn bị sẵn trạng thái PIP
+        Log.d("Launcher", "onRestart - Preparing PIP early");
+        if (appEmbedManager != null) {
+            appEmbedManager.showPip();
         }
     }
 

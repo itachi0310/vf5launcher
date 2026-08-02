@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.FrameLayout;
 import java.lang.reflect.Method;
@@ -25,6 +27,8 @@ public class AppEmbedManager {
     public static String f541a = ""; 
     public static boolean b = false; 
     private static Intent c;         
+
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public AppEmbedManager(Activity activity) {
         this.activity = activity;
@@ -63,41 +67,57 @@ public class AppEmbedManager {
         sp.edit().putString("pip_rect", rect).apply();
     }
 
+    /**
+     * Port of com.syu.g.n.a(View view) - startMapPip
+     * Refined with onRestart logic to prevent full-screen bung.
+     */
     public void showPip() {
         if (f541a == null || f541a.isEmpty()) return;
 
-        boolean reallyVisible = isPinnedStackVisible();
-        if (b && reallyVisible) {
-            Log.d(TAG, "PIP already active and visible.");
+        // Use the system visibility check as the primary filter
+        if (isPinnedStackVisible() && b) {
+            Log.d(TAG, "WindowUtil --- Open window filtered (already visible in PIP)");
             return;
         }
 
-        Log.d(TAG, "Enforcing startMapPip: " + f541a);
+        Log.d(TAG, "showPip (startMapPip): " + f541a);
         
-        // Critical: Set force_pip BEFORE starting activity
+        // 1. Prepare system context IMMEDIATELY (Before Thread)
         SystemPropertiesUtil.set("sys.lsec.force_pip", "true");
-
+        SystemPropertiesUtil.set("sys.lsec.pip_show", "1");
+        
         new Thread(() -> {
             try {
-                // Short sleep to allow property to settle (from project 17 logic)
-                Thread.sleep(100);
-                
-                c = createMapIntent(f541a);
-                if (c != null) {
-                    if (f541a.equals("com.syu.camera360")) {
-                        activity.sendBroadcast(new Intent("com.syu.camera360.show"));
-                    }
+                // Port of com.syu.util.WindowUtil strategy:
+                // Use a handler to schedule the startActivity with a small delay
+                mainHandler.postDelayed(() -> {
+                    c = createMapIntent(f541a);
+                    if (c != null) {
+                        if (f541a.equals("com.syu.camera360")) {
+                            activity.sendBroadcast(new Intent("com.syu.camera360.show"));
+                        }
 
-                    c.putExtra("force_pip", true);
-                    // Add legacy keys for broader compatibility
-                    c.putExtra("pip_mode", 1);
-                    c.putExtra("isPipMode", true);
-                    
-                    activity.startActivity(c);
-                    Log.d(TAG, "✓ startActivity(c) executed");
-                }
+                        c.putExtra("force_pip", true);
+                        // Add legacy keys for broader compatibility
+                        c.putExtra("pip_mode", 1);
+                        c.putExtra("isPipMode", true);
+                        
+                        try {
+                            // Ensure stack is visible just before starting
+                            setPinnedStackVisible(true);
+                            
+                            activity.startActivity(c);
+                            Log.d(TAG, "✓ startActivity for PIP executed from Handler");
+                            
+                            // Re-enforce visibility shortly after launch
+                            mainHandler.postDelayed(() -> setPinnedStackVisible(true), 200);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to startActivity", e);
+                        }
+                    }
+                }, 50); // 50ms is enough to let properties settle
             } catch (Exception e) {
-                Log.e(TAG, "Failed to launch PIP", e);
+                Log.e(TAG, "Thread error in showPip", e);
             }
         }).start();
         b = true;
