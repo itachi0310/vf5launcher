@@ -124,6 +124,17 @@ public class AppEmbedManager {
                     // Use Application Context to launch, similar to the reference launcher
                     // This avoids sharing Task/Stack behavior with the current Activity
                     Context appContext = activity.getApplicationContext();
+                    // Ensure NEW_TASK flag when starting from non-Activity context
+                    try {
+                        if (c != null && (c.getFlags() & android.content.Intent.FLAG_ACTIVITY_NEW_TASK) == 0) {
+                            c.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                        }
+                    } catch (Exception _e) {
+                        // Defensive: if inspecting flags fails, still attempt to add the flag
+                        try {
+                            c.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                        } catch (Exception ignored) {}
+                    }
                     appContext.startActivity(c);
                     Log.d(TAG, "✓ startActivity (via App Context) for PIP executed");
                     
