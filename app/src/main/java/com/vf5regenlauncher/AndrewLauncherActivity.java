@@ -176,22 +176,22 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         
         // Cực kỳ quan trọng: Phải ẩn PIP TRƯỚC khi mở App List
         if (appEmbedManager != null) {
-            appEmbedManager.hidePip();
+//            appEmbedManager.hidePip();
         }
 
         try {
             // Thử mở trực tiếp Activity Launcher của SYU
-            Intent syuLauncher = new Intent();
-            syuLauncher.setComponent(new android.content.ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
-            syuLauncher.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                startActivity(syuLauncher);
-                return;
-            } catch (Exception ignored) {}
-
-            // Thử lệnh Broadcast mở giao diện chính của Canbus
-            sendBroadcast(new Intent("com.syu.allapps"));
-            sendBroadcast(new Intent("action.com.syu.canbus.LAUNCHER"));
+//            Intent syuLauncher = new Intent();
+//            syuLauncher.setComponent(new android.content.ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
+//            syuLauncher.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            try {
+//                startActivity(syuLauncher);
+//                return;
+//            } catch (Exception ignored) {}
+//
+//            // Thử lệnh Broadcast mở giao diện chính của Canbus
+//            sendBroadcast(new Intent("com.syu.allapps"));
+//            sendBroadcast(new Intent("action.com.syu.canbus.LAUNCHER"));
 
             // Intent chuẩn Android
             Intent intent = new Intent(Intent.ACTION_ALL_APPS);

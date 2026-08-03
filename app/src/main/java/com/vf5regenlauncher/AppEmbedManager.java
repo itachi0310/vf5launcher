@@ -145,7 +145,7 @@ public class AppEmbedManager {
         if (f541a == null || f541a.isEmpty() || !b) return;
 
         Log.d(TAG, "removePip - Clearing PIP state");
-        SystemPropertiesUtil.set("sys.lsec.force_pip", "false");
+//        SystemPropertiesUtil.set("sys.lsec.force_pip", "false");
 
         try {
             if (f541a.equals("com.syu.camera360")) {
