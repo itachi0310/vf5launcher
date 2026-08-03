@@ -121,8 +121,11 @@ public class AppEmbedManager {
                     // Ensure stack is visible just before starting
                     setPinnedStackVisible(true);
                     
-                    activity.startActivity(c);
-                    Log.d(TAG, "✓ startActivity for PIP executed");
+                    // Use Application Context to launch, similar to the reference launcher
+                    // This avoids sharing Task/Stack behavior with the current Activity
+                    Context appContext = activity.getApplicationContext();
+                    appContext.startActivity(c);
+                    Log.d(TAG, "✓ startActivity (via App Context) for PIP executed");
                     
                     // Re-enforce visibility shortly after launch
                     mainHandler.postDelayed(() -> {
