@@ -8,6 +8,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.syu.util.WindowUtil;
+
 public class SettingsActivity extends AppCompatActivity {
     private Switch swHighway, swStoplight;
     private TextView tvCurrentMap;
@@ -71,9 +73,12 @@ public class SettingsActivity extends AppCompatActivity {
             .apply();
         if (tvCurrentMap != null) tvCurrentMap.setText("Hiện tại: " + name);
         
-        // Cập nhật lại app embed ngay lập tức nếu launcher đang chạy
-        if (AndrewLauncherActivity.getInstance() != null && AndrewLauncherActivity.getInstance().getAppEmbedManager() != null) {
-            AndrewLauncherActivity.getInstance().getAppEmbedManager().launchApp(pkg);
-        }
+        // Update WindowUtil and persist for system
+        WindowUtil.AppPackageName = pkg;
+        SystemPropertiesUtil.set("persist.launcher.packagename", pkg);
+        
+        // Restart PiP if needed
+        WindowUtil.removePip();
+        WindowUtil.startMapPip();
     }
 }

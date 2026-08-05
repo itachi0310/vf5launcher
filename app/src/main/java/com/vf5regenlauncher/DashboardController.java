@@ -11,7 +11,14 @@ import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-public class DashboardController implements CanbusConnector.CanbusDataListener {
+import com.fyt.car.IUiRefresher;
+import com.syu.car.CarStates;
+
+/**
+ * Port of Dashboard logic to Launcher17 architecture.
+ * Implements IUiRefresher to receive centralized updates.
+ */
+public class DashboardController implements IUiRefresher {
     private final TextView tvSpeed, tvGear, tvSOC, tvRange;
     private final TextView btnModeSport, btnModeEco;
     private final TextView btnRegenOff, btnRegenLow, btnRegenHigh;
@@ -24,7 +31,6 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
     private final Activity activity;
     private int currentDriveMode = 0; // 0: ECO, 1: SPORT
     private int currentRegenMode = 1; // 0: OFF, 1: LOW, 2: HIGH
-    private boolean isCharging = false;
 
     public DashboardController(Activity activity) {
         this.activity = activity;
@@ -39,7 +45,6 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
         btnRegenLow = activity.findViewById(R.id.btn_regen_low);
         btnRegenHigh = activity.findViewById(R.id.btn_regen_high);
 
-        // Charging UI Init
         layoutDriving = activity.findViewById(R.id.layout_driving_dashboard);
         layoutCharging = activity.findViewById(R.id.layout_charging_dashboard);
         tvChargeStatus = activity.findViewById(R.id.tv_charge_status);
@@ -49,97 +54,84 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
         pbCharge = activity.findViewById(R.id.pb_charge_progress);
 
         init();
+        
+        // Register to Global Notifiers
+        com.fyt.car.LauncherNotify.NOTIFY_MAINSTATE.addUiRefresher(this, true);
+        com.fyt.car.LauncherNotify.NOTIFIER_REGEN_DATA.addUiRefresher(this, true);
     }
 
     private void init() {
-        // Chế độ lái (ID 33 trong cmd 1 gửi đi)
         if (btnModeEco != null) btnModeEco.setOnClickListener(v -> sendCarCmd(33, 0));
         if (btnModeSport != null) btnModeSport.setOnClickListener(v -> sendCarCmd(33, 1));
-        
-        // Chế độ phục hồi (ID 34 trong cmd 1 gửi đi)
         if (btnRegenOff != null) btnRegenOff.setOnClickListener(v -> sendCarCmd(34, 0));
         if (btnRegenLow != null) btnRegenLow.setOnClickListener(v -> sendCarCmd(34, 1));
         if (btnRegenHigh != null) btnRegenHigh.setOnClickListener(v -> sendCarCmd(34, 2));
-
-        // Nút dừng sạc (ID 51, Value 1 trong cmd 1)
         if (btnStopCharge != null) btnStopCharge.setOnClickListener(v -> sendCarCmd(51, 1));
     }
 
     private void sendCarCmd(int id, int val) {
-        CanbusConnector.getInstance(activity).sendCarCommand(id, val);
+        CarStates.getCar(activity).getTools().sendInt(1, id, val); // MODULE_MAIN = 1
     }
 
     @Override
-    public void onDataReceived(int moduleId, int code, int value) {
-        if (moduleId == -1) {
-            activity.runOnUiThread(() -> {
-                updateGearDisplay(-1);
-                updateDriveModeDisplay(currentDriveMode);
-            });
-            return;
+    public void onRefresh(int[] ints, long[] lngs, float[] flts, String[] strs, byte[] byts) {
+        if (ints == null || ints.length < 2) return;
+        
+        int updateCode = ints[0];
+        int value = ints[1];
+        
+        // Comprehensive dispatch for both modules
+        switch (updateCode) {
+            case 101: // Speed
+            case 4:   // Ready
+            case 10:  // Ready alt
+                updateDrivingData(updateCode, value);
+                break;
+            case 114: // Gear (Module 0) or SOC (Module 7)
+            case 115: // Brake (Module 0) or Charging (Module 7)
+            case 113: // Range
+            case 116: // Charge Time
+            case 109: // Drive Mode
+            case 110: // Regen Mode
+                // Both modules use some of these codes, but we update the same UI
+                updateDrivingData(updateCode, value);
+                updateCanbusData(updateCode, value);
+                break;
         }
+    }
+
+    public void updateDrivingData(int updateCode, int value) {
         activity.runOnUiThread(() -> {
-            // Module 0: Dữ liệu lái
-            if (moduleId == 0) {
-                switch (code) {
-                    case 101: // Tốc độ
-                        tvSpeed.setText(String.valueOf(value));
-                        break;
-                    case 114: // Cần số (Gears)
-                        updateGearDisplay(value);
-                        break;
-                    case 115: // Chân phanh (Brake Pedal)
-                        updateBrakeDisplay(value == 1);
-                        break;
-                    case 139: // Phanh tay (Handbrake)
-                        // Có thể hiển thị icon phanh tay nếu cần
-                        break;
-                    case 4: // Thường là trạng thái Ready (Sẵn sàng)
-                    case 10:
-                        updateReadyStatus(value);
-                        break;
-                }
-                
-                // Logic cũ cho phím Mode nếu nó gửi qua module 0
-                if ((code == 1 || code == 2 || code == 45) && value == 1) {
-                    toggleDriveMode();
-                }
-            } 
-            // Module 7: Canbus / Air / Charging
-            else if (moduleId == 7) {
-                switch (code) {
-                    case 114: // SOC Pin
-                        tvSOC.setText(value + "%"); 
-                        if (tvChargeSOC != null) tvChargeSOC.setText(value + "%");
-                        if (pbCharge != null) pbCharge.setProgress(value);
-                        break;
-                    case 113: // Quãng đường còn lại
-                        tvRange.setText(value + " km"); 
-                        break;
-                    case 115: // Trạng thái sạc (1: Đang sạc, 0: Không sạc)
-                        updateChargingMode(value == 1);
-                        break;
-                    case 116: // Thời gian sạc (phút)
-                        updateChargeTime(value);
-                        break;
-                    case 109: // Chế độ lái hiện tại
-                        currentDriveMode = value;
-                        updateDriveModeDisplay(value); 
-                        break;
-                    case 110: // Chế độ Regen hiện tại
-                        updateRegenModeDisplay(value); 
-                        break;
-                }
+            switch (updateCode) {
+                case 101: tvSpeed.setText(String.valueOf(value)); break;
+                case 114: updateGearDisplay(value); break;
+                case 115: updateBrakeDisplay(value == 1); break;
+                case 4: 
+                case 10: Log.d("Dashboard", "Ready: " + value); break;
+            }
+        });
+    }
+
+    public void updateCanbusData(int updateCode, int value) {
+        activity.runOnUiThread(() -> {
+            switch (updateCode) {
+                case 114:
+                    tvSOC.setText(value + "%");
+                    if (tvChargeSOC != null) tvChargeSOC.setText(value + "%");
+                    if (pbCharge != null) pbCharge.setProgress(value);
+                    break;
+                case 113: tvRange.setText(value + " km"); break;
+                case 115: updateChargingMode(value == 1); break;
+                case 116: updateChargeTime(value); break;
+                case 109: currentDriveMode = value; updateDriveModeDisplay(value); break;
+                case 110: updateRegenModeDisplay(value); break;
             }
         });
     }
 
     private void updateChargingMode(boolean charging) {
-        this.isCharging = charging;
         if (layoutDriving != null) layoutDriving.setVisibility(charging ? View.GONE : View.VISIBLE);
         if (layoutCharging != null) layoutCharging.setVisibility(charging ? View.VISIBLE : View.GONE);
-        
-        // Giữ màn hình luôn sáng khi đang sạc
         if (charging) {
             activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         } else {
@@ -155,42 +147,32 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
         }
         int hours = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        tvChargeTime.setText(String.format("Thời gian còn lại: %dh %02dmin", hours, mins));
+        tvChargeTime.setText(String.format(java.util.Locale.US, "Thời gian còn lại: %dh %02dmin", hours, mins));
     }
 
     public void toggleDriveMode() {
-        int nextMode = (currentDriveMode == 0) ? 1 : 0;
-        sendCarCmd(33, nextMode);
-    }
-
-    public void toggleRegenMode() {
-        // Chuyển đổi giữa Low (1) và High (2)
-        int nextMode = (currentRegenMode == 1) ? 2 : 1;
-        sendCarCmd(34, nextMode);
+        sendCarCmd(33, (currentDriveMode == 0) ? 1 : 0);
     }
 
     private void updateDriveModeDisplay(int value) {
-        this.currentDriveMode = value; // Đồng bộ biến nội bộ
         if (btnModeEco != null) btnModeEco.setBackgroundResource(value == 0 ? R.drawable.bg_button_selected : 0);
         if (btnModeSport != null) btnModeSport.setBackgroundResource(value == 1 ? R.drawable.bg_button_selected : 0);
     }
 
     private void updateRegenModeDisplay(int value) {
-        this.currentRegenMode = value; // Đồng bộ biến nội bộ
         if (btnRegenOff != null) btnRegenOff.setBackgroundResource(value == 0 ? R.drawable.bg_button_selected : 0);
         if (btnRegenLow != null) btnRegenLow.setBackgroundResource(value == 1 ? R.drawable.bg_button_selected : 0);
         if (btnRegenHigh != null) btnRegenHigh.setBackgroundResource(value == 2 ? R.drawable.bg_button_selected : 0);
     }
 
     private void updateGearDisplay(int value) {
-        // Cập nhật mapping theo thực tế: 1=R, 2=D, 0=N
         String gears = "R N D";
         SpannableString spannable = new SpannableString(gears);
         int start = -1;
         switch (value) {
-            case 1: start = 0; break; // R
-            case 0: start = 2; break; // N
-            case 2: start = 4; break; // D
+            case 1: start = 0; break;
+            case 0: start = 2; break;
+            case 2: start = 4; break;
         }
         if (start != -1) {
             spannable.setSpan(new ForegroundColorSpan(Color.WHITE), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -199,17 +181,6 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
     }
 
     private void updateBrakeDisplay(boolean isPressed) {
-        if (tvSpeed != null) {
-            // Thay đổi màu chữ tốc độ thành đỏ khi đạp phanh để dễ nhận biết
-            tvSpeed.setTextColor(isPressed ? Color.RED : Color.WHITE);
-        }
-    }
-
-    private void updateReadyStatus(int value) {
-        // Log để bạn kiểm tra giá trị của code 4 hoặc 10
-        Log.d("SCAN_DATA", "System Status (Ready?): " + value);
-        
-        // Trên VF5, READY thường hiện khi xe đã khởi động xong.
-        // Bạn có thể gán logic này cho một TextView trên TopBar hoặc Dashboard
+        if (tvSpeed != null) tvSpeed.setTextColor(isPressed ? Color.RED : Color.WHITE);
     }
 }

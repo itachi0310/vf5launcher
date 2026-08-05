@@ -39,8 +39,7 @@ public class AppListActivity extends Activity {
             // Mở ứng dụng bình thường toàn màn hình
             Intent intent = packageManager.getLaunchIntentForPackage(app.packageName);
             if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                LauncherApplication.getAppContext().startActivity(intent);
+                startActivity(intent);
             }
         });
     }

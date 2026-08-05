@@ -2,46 +2,54 @@ package com.vf5regenlauncher;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
-import java.lang.reflect.Method;
+import com.syu.car.CarStates;
+import com.syu.util.WindowUtil;
 
+/**
+ * Standardized LauncherApplication following Launcher17 architecture.
+ */
 public class LauncherApplication extends Application {
     private static final String TAG = "LauncherApplication";
-    private static LauncherApplication mInstance;
-
-    public static LauncherApplication getInstance() {
-        return mInstance;
-    }
-
-    public static Context getAppContext() {
-        return mInstance.getApplicationContext();
-    }
+    public static LauncherApplication sApp;
+    public static Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onCreate() {
         super.onCreate();
-        mInstance = this;
+        sApp = this;
         
-        // SYU Architecture: Application class often registers itself as a lifecycle observer
-        // or uses static triggers like com.syu.g.n.a()
+        Log.d(TAG, "Starting VF5 Regen Launcher (SYU Core Architecture)");
         
-        // Match original LauncherApplication.onCreate() logic
+        // 0. Initialize App State
+        LauncherAppState.setApplicationContext(this);
+        LauncherAppState.getInstance();
+
+        // 1. Initialize Car State IPC Binding
+        CarStates.getCar(this);
+        
+        // 2. Initialize Window/PiP Framework
+        WindowUtil.initDefaultApp();
+        
+        // 3. System Property Defaults
         SystemPropertiesUtil.set("persist.syu.launcher.haspip", "true");
+        SystemPropertiesUtil.set("sys.lsec.force_pip", "true");
         
-        // Initial rect setup
+        setupDefaultPipRect();
+    }
+
+    private void setupDefaultPipRect() {
         android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        if (displayMetrics.widthPixels == 1280 && displayMetrics.heightPixels == 720) {
+        if (displayMetrics.widthPixels == 1280) {
             SystemPropertiesUtil.set("sys.lsec.pip_rect", "128 88 802 474");
         } else {
             SystemPropertiesUtil.set("sys.lsec.pip_rect", "98 76 656 396");
         }
-        
-        // Initialize the PiP state like SYU g.n.a()
-        // This sets up the initial Intent and reads the persist.launcher.packagename
-        SystemPropertiesUtil.set("sys.lsec.force_pip", "true");
-        
-        // Final Integrated Init: One-time setup of persistent members
-        AppEmbedManager.init();
+    }
+
+    public static Context getAppContext() {
+        return sApp.getApplicationContext();
     }
 }
