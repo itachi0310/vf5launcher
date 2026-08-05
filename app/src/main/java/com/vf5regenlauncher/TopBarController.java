@@ -22,7 +22,8 @@ public class TopBarController implements CanbusConnector.CanbusDataListener {
             btnSettings.setOnClickListener(v -> {
                 try {
                     Intent intent = new Intent(activity, SettingsActivity.class);
-                    activity.startActivity(intent);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    LauncherApplication.getAppContext().startActivity(intent);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

@@ -48,7 +48,7 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_HOME);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            activity.startActivity(intent);
+            LauncherApplication.getAppContext().startActivity(intent);
         });
 
         View apps = activity.findViewById(R.id.btn_nav_apps);
@@ -108,11 +108,17 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
 //            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 //            activity.startActivity(intent);
             Intent intent = activity.getPackageManager().getLaunchIntentForPackage("com.syu.canbus.enter.air");
-            if (intent != null) activity.startActivity(intent);
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                LauncherApplication.getAppContext().startActivity(intent);
+            }
         } catch (Exception e) {
             try {
                 Intent intent = activity.getPackageManager().getLaunchIntentForPackage("com.syu.canbus");
-                if (intent != null) activity.startActivity(intent);
+                if (intent != null) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    LauncherApplication.getAppContext().startActivity(intent);
+                }
             } catch (Exception e2) {
                 e2.printStackTrace();
             }

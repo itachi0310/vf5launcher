@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="@dimen/DTminWidth"
+    android:minHeight="@dimen/DTminHeight"
+    android:updatePeriodMillis="150000"
+    android:initialLayout="@layout/fyt_xml_dt_music_widget"
+    android:previewImage="@drawable/fyt_dtwidget_preview"/>

@@ -1,6 +1,7 @@
 package com.vf5regenlauncher;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,169 +11,167 @@ import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.widget.FrameLayout;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Final Integrated AppEmbedManager.
- * Combines exact porting of com.syu.g.n logic with project 17's enforcement properties.
+ * Static Integrated AppEmbedManager.
+ * Matches the 'init once, reuse always' pattern of professional SYU launchers.
  */
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
-    private final Activity activity;
-    private final FrameLayout container;
     
-    public static String f541a = ""; 
-    public static boolean b = false; 
-    private static Intent c;         
+    // Global shared states (init once)
+    public static String currentPackage = ""; 
+    public static boolean isPipShowing = false; 
+    private static Intent persistentIntent;         
+    private static Object iActivityManager;
 
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private static final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    public AppEmbedManager(Activity activity) {
-        this.activity = activity;
-        this.container = activity.findViewById(R.id.container_main_app);
-        if (this.container != null) {
-            this.container.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
-                if (left != oldLeft || top != oldTop || right != oldRight || bottom != oldBottom) {
-                    measureAndSaveCoordinates();
-                }
-            });
-        }
-        c = new Intent();
+    /**
+     * Call this in LauncherApplication.onCreate()
+     */
+    public static void init() {
+        persistentIntent = new Intent();
         refreshPackageName();
+        Log.d(TAG, "Initialized with package: " + currentPackage);
     }
 
-    public void refreshPackageName() {
-        f541a = SystemPropertiesUtil.get("persist.launcher.packagename", "");
-        if (f541a.isEmpty()) {
-            f541a = "com.vietmap.vietmaplive";
-            SystemPropertiesUtil.set("persist.launcher.packagename", f541a);
+    public static void refreshPackageName() {
+        currentPackage = SystemPropertiesUtil.get("persist.launcher.packagename", "");
+        if (currentPackage.isEmpty()) {
+            currentPackage = "com.vietmap.vietmaplive"; // Default fallback
+            SystemPropertiesUtil.set("persist.launcher.packagename", currentPackage);
         }
-        if (container != null) {
-            container.post(this::measureAndSaveCoordinates);
-        }
+        updatePipIntent();
     }
 
-    private void measureAndSaveCoordinates() {
+    /**
+     * Setup coordinate listener for the UI container
+     */
+    public static void attachContainer(Activity activity, FrameLayout container) {
+        if (container == null) return;
+        
+        container.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (left != oldLeft || top != oldTop || right != oldRight || bottom != oldBottom) {
+                measureAndSaveCoordinates(activity, container);
+            }
+        });
+        
+        // Initial measure
+        container.post(() -> measureAndSaveCoordinates(activity, container));
+    }
+
+    private static void measureAndSaveCoordinates(Activity activity, FrameLayout container) {
+        if (container == null) return;
         int[] location = new int[2];
         container.getLocationOnScreen(location);
         int w = container.getWidth();
         int h = container.getHeight();
 
         if (w <= 0 || h <= 0) {
-            container.postDelayed(this::measureAndSaveCoordinates, 500);
+            container.postDelayed(() -> measureAndSaveCoordinates(activity, container), 500);
             return;
         }
 
         String rect = String.format(Locale.US, "%d %d %d %d", 
                 location[0], location[1], location[0] + w, location[1] + h);
         
+        Log.d(TAG, "Measured PIP Rect: " + rect);
         SystemPropertiesUtil.set("sys.lsec.pip_rect", rect);
+        
         SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
         sp.edit().putString("pip_rect", rect).apply();
     }
 
-    /**
-     * Port of com.syu.g.n.a(View view) - startMapPip
-     * Refined with onRestart logic to prevent full-screen bung.
-     */
-    public void showPip() {
-        if (f541a == null || f541a.isEmpty()) return;
+    public static void showPip() {
+        if (currentPackage == null || currentPackage.isEmpty()) return;
 
         // Use the system visibility check as the primary filter
-        if (isPinnedStackVisible() && b) {
-            Log.d(TAG, "WindowUtil --- Open window filtered (already visible in PIP)");
+        if (isPinnedStackVisible() && isPipShowing) {
+            Log.d(TAG, "Open window filtered (already visible)");
             return;
         }
 
-        Log.d(TAG, "showPip (startMapPip): " + f541a);
+        Log.d(TAG, "showPip: " + currentPackage);
         
-        // 1. Re-enforce PIP coordinates from storage BEFORE starting
-        // This addresses the issue where coordinates might be lost during hidePip or resume
-        SharedPreferences sp = activity.getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
-        String savedRect = sp.getString("pip_rect", "");
-        if (!savedRect.isEmpty()) {
-            Log.d(TAG, "Restoring PIP rect: " + savedRect);
-            SystemPropertiesUtil.set("sys.lsec.pip_rect", savedRect);
-        } else {
-            // If no saved rect, try to measure now
-            measureAndSaveCoordinates();
-        }
-        
+        // Early coordinate restoration (from professional launcher pattern)
+        restorePipRect();
+
         // 2. Prepare system context
         SystemPropertiesUtil.set("sys.lsec.force_pip", "true");
         SystemPropertiesUtil.set("sys.lsec.pip_show", "1");
-        
-        // Use a slight delay on MainThread to ensure system properties settle
-        mainHandler.postDelayed(() -> {
-            c = createMapIntent(f541a);
-            if (c != null) {
-                if (f541a.equals("com.syu.camera360")) {
-                    activity.sendBroadcast(new Intent("com.syu.camera360.show"));
-                }
 
-                c.putExtra("force_pip", true);
-                c.putExtra("pip_mode", 1);
-                c.putExtra("isPipMode", true);
+        // Run in separate thread to avoid UI freezing and stack race conditions
+        new Thread(() -> {
+            updatePipIntent();
+            if (persistentIntent != null) {
+                if (currentPackage.equals("com.syu.camera360")) {
+                    LauncherApplication.getAppContext().sendBroadcast(new Intent("com.syu.camera360.show"));
+                }
                 
                 try {
-                    // Ensure stack is visible just before starting
+                    // Re-enforce visibility before launch
                     setPinnedStackVisible(true);
                     
-                    // Use Application Context to launch, similar to the reference launcher
-                    // This avoids sharing Task/Stack behavior with the current Activity
-                    Context appContext = activity.getApplicationContext();
-                    // Ensure NEW_TASK flag when starting from non-Activity context
-                    try {
-                        if (c != null && (c.getFlags() & android.content.Intent.FLAG_ACTIVITY_NEW_TASK) == 0) {
-                            c.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-                        }
-                    } catch (Exception _e) {
-                        // Defensive: if inspecting flags fails, still attempt to add the flag
-                        try {
-                            c.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-                        } catch (Exception ignored) {}
-                    }
-                    appContext.startActivity(c);
-                    Log.d(TAG, "✓ startActivity (via App Context) for PIP executed");
-                    
-                    // Re-enforce visibility shortly after launch
-                    mainHandler.postDelayed(() -> {
-                        setPinnedStackVisible(true);
-                        // Also re-set rect just in case the system cleared it during transition
-                        if (!savedRect.isEmpty()) {
-                            SystemPropertiesUtil.set("sys.lsec.pip_rect", savedRect);
-                        }
-                    }, 300);
+                    Log.d(TAG, "✓ Triggering PIP launch for " + currentPackage);
+                    LauncherApplication.getAppContext().startActivity(persistentIntent);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to startActivity", e);
                 }
             }
-        }, 100); 
+        }).start();
 
-        b = true;
+        isPipShowing = true;
     }
 
-    public void hidePip() {
-        if (f541a == null || f541a.isEmpty() || !b) return;
+    private static void updatePipIntent() {
+        if (currentPackage == null || currentPackage.isEmpty()) return;
+        
+        Context context = LauncherApplication.getAppContext();
+        persistentIntent = createMapIntent(context, currentPackage);
+        
+        if (persistentIntent != null) {
+            persistentIntent.putExtra("force_pip", true);
+            persistentIntent.putExtra("pip_mode", 1);
+            persistentIntent.putExtra("isPipMode", true);
+            
+            // Standard SYU launch flags: FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+            persistentIntent.addFlags(270532608); // 0x10200000
+        }
+    }
 
-        Log.d(TAG, "removePip - Clearing PIP state");
-//        SystemPropertiesUtil.set("sys.lsec.force_pip", "false");
+    public static void hidePip() {
+        if (currentPackage == null || currentPackage.isEmpty() || !isPipShowing) return;
+
+        Log.d(TAG, "hidePip - Signal system to hide");
+        SystemPropertiesUtil.set("sys.lsec.pip_show", "0");
 
         try {
-            if (f541a.equals("com.syu.camera360")) {
-                activity.sendBroadcast(new Intent("com.syu.camera360.hide"));
+            if (currentPackage.equals("com.syu.camera360")) {
+                LauncherApplication.getAppContext().sendBroadcast(new Intent("com.syu.camera360.hide"));
             }
             setPinnedStackVisible(false);
         } catch (Exception e) {
             Log.e(TAG, "Reflection failed in hidePip", e);
         }
-        b = false;
+        isPipShowing = false;
     }
 
-    private boolean isPinnedStackVisible() {
+    public static void restorePipRect() {
+        SharedPreferences sp = LauncherApplication.getAppContext().getSharedPreferences("pip_prefs", Context.MODE_PRIVATE);
+        String savedRect = sp.getString("pip_rect", "");
+        if (!savedRect.isEmpty()) {
+            SystemPropertiesUtil.set("sys.lsec.pip_rect", savedRect);
+            SystemPropertiesUtil.set("sys.lsec.force_pip", "true");
+        }
+    }
+
+    private static boolean isPinnedStackVisible() {
         try {
             Object am = getIActivityManager();
             if (am != null) {
@@ -183,7 +182,7 @@ public class AppEmbedManager {
         return false;
     }
 
-    private void setPinnedStackVisible(boolean visible) {
+    private static void setPinnedStackVisible(boolean visible) {
         try {
             Object am = getIActivityManager();
             if (am != null) {
@@ -193,20 +192,23 @@ public class AppEmbedManager {
         } catch (Exception ignored) {}
     }
 
-    private Object getIActivityManager() {
+    private static Object getIActivityManager() {
+        if (iActivityManager != null) return iActivityManager;
         try {
-            return Class.forName("android.app.ActivityManager").getMethod("getService").invoke(null);
+            iActivityManager = Class.forName("android.app.ActivityManager").getMethod("getService").invoke(null);
         } catch (Exception ignored) {}
-        try {
-            return Class.forName("android.app.ActivityManagerNative").getMethod("getDefault").invoke(null);
-        } catch (Exception ignored) {}
-        return null;
+        if (iActivityManager == null) {
+            try {
+                iActivityManager = Class.forName("android.app.ActivityManagerNative").getMethod("getDefault").invoke(null);
+            } catch (Exception ignored) {}
+        }
+        return iActivityManager;
     }
 
-    private Intent createMapIntent(String pkg) {
+    private static Intent createMapIntent(Context context, String pkg) {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setPackage(pkg);
-        PackageManager pm = activity.getPackageManager();
+        PackageManager pm = context.getPackageManager();
         List<ResolveInfo> activities = pm.queryIntentActivities(intent, 0);
         
         for (ResolveInfo ri : activities) {
@@ -220,14 +222,10 @@ public class AppEmbedManager {
         return pm.getLaunchIntentForPackage(pkg);
     }
 
-    public void launchApp(String pkg) {
-        f541a = pkg;
+    public static void launchApp(String pkg) {
+        currentPackage = pkg;
         SystemPropertiesUtil.set("persist.launcher.packagename", pkg);
-        b = false; 
-        showPip();
-    }
-    
-    public void refreshPipState() {
+        isPipShowing = false;
         showPip();
     }
 }

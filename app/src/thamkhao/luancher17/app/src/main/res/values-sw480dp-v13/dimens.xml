@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="apps_customize_tab_bar_height">60dp</dimen>
+    <dimen name="apps_customize_tab_bar_margin_top">0dp</dimen>
+    <dimen name="app_icon_size">97dp</dimen>
+    <dimen name="app_widget_preview_label_margin_top">8dp</dimen>
+    <dimen name="app_widget_preview_label_margin_left">@dimen/app_widget_preview_padding_left</dimen>
+    <dimen name="app_widget_preview_label_margin_right">@dimen/app_widget_preview_padding_right</dimen>
+    <dimen name="icon_size">70dp</dimen>
+</resources>

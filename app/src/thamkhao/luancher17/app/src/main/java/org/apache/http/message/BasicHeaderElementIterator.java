@@ -1,0 +1,42 @@
+package org.apache.http.message;
+
+import java.util.NoSuchElementException;
+import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
+import org.apache.http.HeaderIterator;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001025_com.android.launcher17.apk:libs/org.apache.http.legacy.jar:org/apache/http/message/BasicHeaderElementIterator.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+@Deprecated
+public class BasicHeaderElementIterator implements HeaderElementIterator {
+    public BasicHeaderElementIterator(HeaderIterator headerIterator, HeaderValueParser parser) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public BasicHeaderElementIterator(HeaderIterator headerIterator) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HeaderElementIterator, java.util.Iterator
+    public boolean hasNext() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HeaderElementIterator
+    public HeaderElement nextElement() throws NoSuchElementException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // java.util.Iterator
+    public final Object next() throws NoSuchElementException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // java.util.Iterator
+    public void remove() throws UnsupportedOperationException {
+        throw new RuntimeException("Stub!");
+    }
+}

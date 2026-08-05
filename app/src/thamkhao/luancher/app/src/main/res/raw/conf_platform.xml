@@ -1,0 +1,5 @@
+<project name="platform">
+	<property name="apkid" value="190008001_vi_com.android.launcher6"/>
+		<property name="sharedUserId" value="android.uid.system"/>	
+</project>
+

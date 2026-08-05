@@ -1,0 +1,6 @@
+<project name="platform">
+	<property name="apkid" value="190001025_com.android.launcher17"/>
+		<property name="sharedUserId" value="android.uid.system"/>	
+		<property name="apkpath" value="C:\Users\Administrator\Desktop\APKOut\9853\凯易得\UI25"/>
+</project>
+

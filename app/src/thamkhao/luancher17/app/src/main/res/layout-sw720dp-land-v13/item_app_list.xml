@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:layout_width="139dp"
+    android:layout_height="match_parent">
+    <ImageView
+        android:id="@+id/cycler_app_icon"
+        android:layout_width="105dp"
+        android:layout_height="105dp"/>
+    <TextView
+        android:textSize="17sp"
+        android:textColor="@android:color/white"
+        android:gravity="center_horizontal"
+        android:id="@+id/cycler_app_name"
+        android:paddingLeft="2dp"
+        android:paddingRight="2dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:singleLine="true"/>
+</LinearLayout>

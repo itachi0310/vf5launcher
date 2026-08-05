@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:clickable="true"
+    android:layout_width="@dimen/x125"
+    android:layout_height="@dimen/y125">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="@dimen/x125"
+        android:layout_height="@dimen/y125">
+        <ImageView
+            android:layout_gravity="center"
+            android:id="@+id/iv_item_app_icon"
+            android:background="@drawable/btn_app_add"
+            android:layout_width="@dimen/x59"
+            android:layout_height="@dimen/y62"
+            android:layout_marginTop="@dimen/y15"/>
+    </LinearLayout>
+</RelativeLayout>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="toolbar_button_vertical_padding">12dp</dimen>
+    <dimen name="toolbar_button_horizontal_padding">20dp</dimen>
+    <dimen name="apps_customize_pageLayoutWidthGap">36dp</dimen>
+    <dimen name="apps_customize_pageLayoutHeightGap">8dp</dimen>
+    <dimen name="apps_customize_pageLayoutPaddingTop">20dp</dimen>
+    <dimen name="apps_customize_pageLayoutPaddingBottom">14dp</dimen>
+    <dimen name="sbd_iconview_padding">20dp</dimen>
+    <dimen name="sbd_iconview_padding_p">20dp</dimen>
+    <dimen name="sbd_iconview_textsize">21px</dimen>
+    <dimen name="hotseat_btn_height">98dp</dimen>
+    <dimen name="hotseat_btn_height_3g">162dp</dimen>
+    <dimen name="layout_navi_left">78dp</dimen>
+    <dimen name="hotseat_layout_width">160dp</dimen>
+    <dimen name="hotseat_textstyle_top">142dp</dimen>
+</resources>

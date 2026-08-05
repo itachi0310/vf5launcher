@@ -1,0 +1,33 @@
+package android.support.v4.view;
+
+import android.view.View;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001025_com.android.launcher17.apk:libs/android-support-v4.jar:android/support/v4/view/ViewCompatMarshmallow.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+class ViewCompatMarshmallow {
+    ViewCompatMarshmallow() {
+    }
+
+    public static void setScrollIndicators(View view, int indicators) {
+        view.setScrollIndicators(indicators);
+    }
+
+    public static void setScrollIndicators(View view, int indicators, int mask) {
+        view.setScrollIndicators(indicators, mask);
+    }
+
+    public static int getScrollIndicators(View view) {
+        return view.getScrollIndicators();
+    }
+
+    static void offsetTopAndBottom(View view, int offset) {
+        view.offsetTopAndBottom(offset);
+    }
+
+    static void offsetLeftAndRight(View view, int offset) {
+        view.offsetLeftAndRight(offset);
+    }
+}

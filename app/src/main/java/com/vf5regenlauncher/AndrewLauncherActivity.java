@@ -18,7 +18,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     private TopBarController topBarController;
     private DrivingAssistant drivingAssistant;
     private CanbusConnector canbusConnector;
-    private AppEmbedManager appEmbedManager;
+    private AppEmbedManager appEmbedManager; // Kept as instance but uses static methods internally
 
     public static AndrewLauncherActivity getInstance() {
         return instance;
@@ -44,7 +44,10 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         bottomNavController = new BottomNavController(this);
         topBarController = new TopBarController(this);
         drivingAssistant = new DrivingAssistant(this);
-        appEmbedManager = new AppEmbedManager(this);
+        
+        // Refactored: Attach the container for coordinate tracking
+        android.widget.FrameLayout container = findViewById(R.id.container_main_app);
+        AppEmbedManager.attachContainer(this, container);
 
         canbusConnector.addListener(dashboardController);
         canbusConnector.addListener(bottomNavController);
@@ -70,10 +73,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         public void onReceive(android.content.Context context, Intent intent) {
             if ("com.lsec.pipdie".equals(intent.getAction())) {
                 Log.d("Launcher", "PIP died, restarting...");
-                if (appEmbedManager != null) {
-                    AppEmbedManager.b = false; // Reset flag để cho phép mở lại
-                    appEmbedManager.showPip();
-                }
+                AppEmbedManager.isPipShowing = false; // Reset flag để cho phép mở lại
+                AppEmbedManager.showPip();
             }
         }
     };
@@ -87,12 +88,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     protected void onRestart() {
         super.onRestart();
-        // Xử lý triệt để trong onRestart như gợi ý:
-        // Ngay khi Launcher bắt đầu khởi động lại, chuẩn bị sẵn trạng thái PIP
         Log.d("Launcher", "onRestart - Preparing PIP early");
-        if (appEmbedManager != null) {
-            appEmbedManager.showPip();
-        }
+        AppEmbedManager.isPipShowing = false; 
     }
 
     private void handleSpecialIntents(Intent intent) {
@@ -133,7 +130,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
             if (!Settings.canDrawOverlays(this)) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()));
-                startActivity(intent);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                LauncherApplication.getAppContext().startActivity(intent);
             }
         }
     }
@@ -143,7 +141,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
             if (!Settings.System.canWrite(this)) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                         Uri.parse("package:" + getPackageName()));
-                startActivity(intent);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                LauncherApplication.getAppContext().startActivity(intent);
             }
         }
     }
@@ -174,35 +173,23 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     public void openSystemAppList() {
         Log.d("Launcher", "Opening System App List...");
         
-        // Cực kỳ quan trọng: Phải ẩn PIP TRƯỚC khi mở App List
-        if (appEmbedManager != null) {
-//            appEmbedManager.hidePip();
-        }
+        // Reference: onResume/onStop handles PiP visibility.
+        // When opening App List, we should probably hide PiP to let it take full screen.
+        AppEmbedManager.hidePip();
 
         try {
-            // Thử mở trực tiếp Activity Launcher của SYU
-//            Intent syuLauncher = new Intent();
-//            syuLauncher.setComponent(new android.content.ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
-//            syuLauncher.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            try {
-//                startActivity(syuLauncher);
-//                return;
-//            } catch (Exception ignored) {}
-//
-//            // Thử lệnh Broadcast mở giao diện chính của Canbus
-//            sendBroadcast(new Intent("com.syu.allapps"));
-//            sendBroadcast(new Intent("action.com.syu.canbus.LAUNCHER"));
-
-            // Intent chuẩn Android
+            // Standard Android Intent
             Intent intent = new Intent(Intent.ACTION_ALL_APPS);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             if (intent.resolveActivity(getPackageManager()) != null) {
-                startActivity(intent);
+                LauncherApplication.getAppContext().startActivity(intent);
                 return;
             }
 
             // Fallback
-            startActivity(new Intent(this, AppListActivity.class));
+            Intent appListIntent = new Intent(this, AppListActivity.class);
+            appListIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            LauncherApplication.getAppContext().startActivity(appListIntent);
         } catch (Exception e) {
             Log.e("Launcher", "Could not open app list", e);
         }
@@ -211,30 +198,23 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (appEmbedManager != null) {
-            // Match original Launcher.onStart() logic
-            appEmbedManager.refreshPackageName();
-        }
+        // Match original Launcher.onStart() logic
+        AppEmbedManager.refreshPackageName();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (appEmbedManager != null) {
-            // Thêm delay 200ms để hệ thống ổn định Stack sau khi Resume
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                appEmbedManager.showPip();
-            }, 200);
-        }
+        // Match reference: onResume calls a(null) which triggers startMapPip
+        Log.d("Launcher", "onResume - Triggering showPip like reference");
+        AppEmbedManager.showPip();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (appEmbedManager != null) {
-            // Match original Launcher.onStop() logic
-            appEmbedManager.hidePip();
-        }
+        Log.d("Launcher", "onStop - Hiding PIP like reference");
+        AppEmbedManager.hidePip();
     }
 
     @Override

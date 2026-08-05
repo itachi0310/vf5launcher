@@ -1,0 +1,14 @@
+package org.apache.http.protocol;
+
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  Launcher3.apk:libs/org.apache.http.legacy.jar:org/apache/http/protocol/HttpExpectationVerifier.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+@Deprecated
+public interface HttpExpectationVerifier {
+    void verify(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext);
+}

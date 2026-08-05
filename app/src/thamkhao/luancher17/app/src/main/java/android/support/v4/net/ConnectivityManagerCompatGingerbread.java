@@ -1,0 +1,34 @@
+package android.support.v4.net;
+
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001025_com.android.launcher17.apk:libs/android-support-v4.jar:android/support/v4/net/ConnectivityManagerCompatGingerbread.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+class ConnectivityManagerCompatGingerbread {
+    ConnectivityManagerCompatGingerbread() {
+    }
+
+    public static boolean isActiveNetworkMetered(ConnectivityManager cm) {
+        NetworkInfo info = cm.getActiveNetworkInfo();
+        if (info == null) {
+            return true;
+        }
+        int type = info.getType();
+        switch (type) {
+            case 0:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            default:
+                return true;
+            case 1:
+                return false;
+        }
+    }
+}

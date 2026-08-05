@@ -1,0 +1,27 @@
+package org.apache.http.impl;
+
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpRequestFactory;
+import org.apache.http.RequestLine;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  Launcher3.apk:libs/org.apache.http.legacy.jar:org/apache/http/impl/DefaultHttpRequestFactory.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+@Deprecated
+public class DefaultHttpRequestFactory implements HttpRequestFactory {
+    public DefaultHttpRequestFactory() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpRequestFactory
+    public HttpRequest newHttpRequest(String str, String str2) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpRequestFactory
+    public HttpRequest newHttpRequest(RequestLine requestLine) {
+        throw new RuntimeException("Stub!");
+    }
+}

@@ -1,0 +1,51 @@
+package android.support.v4.widget;
+
+import android.widget.PopupWindow;
+import java.lang.reflect.Method;
+
+/* JADX INFO: loaded from: Launcher3.apk:libs/android-support-v4.jar:android/support/v4/widget/PopupWindowCompatGingerbread.class */
+class PopupWindowCompatGingerbread {
+    private static Method sSetWindowLayoutTypeMethod;
+    private static boolean sSetWindowLayoutTypeMethodAttempted;
+    private static Method sGetWindowLayoutTypeMethod;
+    private static boolean sGetWindowLayoutTypeMethodAttempted;
+
+    PopupWindowCompatGingerbread() {
+    }
+
+    static void setWindowLayoutType(PopupWindow popupWindow, int layoutType) {
+        if (!sSetWindowLayoutTypeMethodAttempted) {
+            try {
+                sSetWindowLayoutTypeMethod = PopupWindow.class.getDeclaredMethod("setWindowLayoutType", Integer.TYPE);
+                sSetWindowLayoutTypeMethod.setAccessible(true);
+            } catch (Exception e) {
+            }
+            sSetWindowLayoutTypeMethodAttempted = true;
+        }
+        if (sSetWindowLayoutTypeMethod != null) {
+            try {
+                sSetWindowLayoutTypeMethod.invoke(popupWindow, Integer.valueOf(layoutType));
+            } catch (Exception e2) {
+            }
+        }
+    }
+
+    static int getWindowLayoutType(PopupWindow popupWindow) {
+        if (!sGetWindowLayoutTypeMethodAttempted) {
+            try {
+                sGetWindowLayoutTypeMethod = PopupWindow.class.getDeclaredMethod("getWindowLayoutType", new Class[0]);
+                sGetWindowLayoutTypeMethod.setAccessible(true);
+            } catch (Exception e) {
+            }
+            sGetWindowLayoutTypeMethodAttempted = true;
+        }
+        if (sGetWindowLayoutTypeMethod != null) {
+            try {
+                return ((Integer) sGetWindowLayoutTypeMethod.invoke(popupWindow, new Object[0])).intValue();
+            } catch (Exception e2) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+}

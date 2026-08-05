@@ -1,0 +1,63 @@
+package org.apache.http.impl;
+
+import org.apache.http.HttpConnectionMetrics;
+import org.apache.http.io.HttpTransportMetrics;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001025_com.android.launcher17.apk:libs/org.apache.http.legacy.jar:org/apache/http/impl/HttpConnectionMetricsImpl.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+@Deprecated
+public class HttpConnectionMetricsImpl implements HttpConnectionMetrics {
+    public static final String RECEIVED_BYTES_COUNT = "http.received-bytes-count";
+    public static final String REQUEST_COUNT = "http.request-count";
+    public static final String RESPONSE_COUNT = "http.response-count";
+    public static final String SENT_BYTES_COUNT = "http.sent-bytes-count";
+
+    public HttpConnectionMetricsImpl(HttpTransportMetrics inTransportMetric, HttpTransportMetrics outTransportMetric) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpConnectionMetrics
+    public long getReceivedBytesCount() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpConnectionMetrics
+    public long getSentBytesCount() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpConnectionMetrics
+    public long getRequestCount() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public void incrementRequestCount() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpConnectionMetrics
+    public long getResponseCount() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public void incrementResponseCount() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpConnectionMetrics
+    public Object getMetric(String metricName) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public void setMetric(String metricName, Object obj) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override // org.apache.http.HttpConnectionMetrics
+    public void reset() {
+        throw new RuntimeException("Stub!");
+    }
+}

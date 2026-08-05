@@ -1,0 +1,27 @@
+package android.support.v4.view.animation;
+
+import android.graphics.Path;
+import android.view.animation.Interpolator;
+import android.view.animation.PathInterpolator;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001025_com.android.launcher17.apk:libs/android-support-v4.jar:android/support/v4/view/animation/PathInterpolatorCompatApi21.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+class PathInterpolatorCompatApi21 {
+    private PathInterpolatorCompatApi21() {
+    }
+
+    public static Interpolator create(Path path) {
+        return new PathInterpolator(path);
+    }
+
+    public static Interpolator create(float controlX, float controlY) {
+        return new PathInterpolator(controlX, controlY);
+    }
+
+    public static Interpolator create(float controlX1, float controlY1, float controlX2, float controlY2) {
+        return new PathInterpolator(controlX1, controlY1, controlX2, controlY2);
+    }
+}

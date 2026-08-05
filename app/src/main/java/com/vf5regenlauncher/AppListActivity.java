@@ -40,7 +40,7 @@ public class AppListActivity extends Activity {
             Intent intent = packageManager.getLaunchIntentForPackage(app.packageName);
             if (intent != null) {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
+                LauncherApplication.getAppContext().startActivity(intent);
             }
         });
     }

@@ -1,0 +1,43 @@
+package android.support.v4.net;
+
+import android.net.TrafficStats;
+import java.net.Socket;
+import java.net.SocketException;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001025_com.android.launcher17.apk:libs/android-support-v4.jar:android/support/v4/net/TrafficStatsCompatIcs.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+class TrafficStatsCompatIcs {
+    TrafficStatsCompatIcs() {
+    }
+
+    public static void clearThreadStatsTag() {
+        TrafficStats.clearThreadStatsTag();
+    }
+
+    public static int getThreadStatsTag() {
+        return TrafficStats.getThreadStatsTag();
+    }
+
+    public static void incrementOperationCount(int operationCount) {
+        TrafficStats.incrementOperationCount(operationCount);
+    }
+
+    public static void incrementOperationCount(int tag, int operationCount) {
+        TrafficStats.incrementOperationCount(tag, operationCount);
+    }
+
+    public static void setThreadStatsTag(int tag) {
+        TrafficStats.setThreadStatsTag(tag);
+    }
+
+    public static void tagSocket(Socket socket) throws SocketException {
+        TrafficStats.tagSocket(socket);
+    }
+
+    public static void untagSocket(Socket socket) throws SocketException {
+        TrafficStats.untagSocket(socket);
+    }
+}

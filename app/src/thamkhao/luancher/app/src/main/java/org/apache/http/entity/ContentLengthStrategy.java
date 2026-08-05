@@ -1,0 +1,16 @@
+package org.apache.http.entity;
+
+import org.apache.http.HttpMessage;
+
+/* JADX WARN: Classes with same name are omitted, all sources:
+  Launcher3.apk:libs/org.apache.http.legacy.jar:org/apache/http/entity/ContentLengthStrategy.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+@Deprecated
+public interface ContentLengthStrategy {
+    public static final int CHUNKED = -2;
+    public static final int IDENTITY = -1;
+
+    long determineLength(HttpMessage httpMessage);
+}

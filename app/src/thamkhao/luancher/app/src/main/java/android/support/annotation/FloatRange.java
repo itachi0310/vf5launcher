@@ -1,0 +1,19 @@
+package android.support.annotation;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/* JADX INFO: loaded from: Launcher3.apk:libs/android-support-v4.jar:android/support/annotation/FloatRange.class */
+@Target({ElementType.METHOD, ElementType.PARAMETER, ElementType.FIELD, ElementType.LOCAL_VARIABLE, ElementType.ANNOTATION_TYPE})
+@Retention(RetentionPolicy.CLASS)
+public @interface FloatRange {
+    double from() default Double.NEGATIVE_INFINITY;
+
+    double to() default Double.POSITIVE_INFINITY;
+
+    boolean fromInclusive() default true;
+
+    boolean toInclusive() default true;
+}
