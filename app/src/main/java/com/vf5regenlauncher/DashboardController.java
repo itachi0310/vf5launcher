@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
@@ -25,7 +24,7 @@ public class DashboardController implements IUiRefresher {
     
     // Charging UI
     private final View layoutDriving, layoutCharging;
-    private final TextView tvChargeStatus, tvChargeSOC, tvChargeTime, btnStopCharge;
+    private final TextView tvChargeSOC, tvChargeTime;
     private final ProgressBar pbCharge;
     
     private final Activity activity;
@@ -47,10 +46,8 @@ public class DashboardController implements IUiRefresher {
 
         layoutDriving = activity.findViewById(R.id.layout_driving_dashboard);
         layoutCharging = activity.findViewById(R.id.layout_charging_dashboard);
-        tvChargeStatus = activity.findViewById(R.id.tv_charge_status);
         tvChargeSOC = activity.findViewById(R.id.tv_charge_soc);
         tvChargeTime = activity.findViewById(R.id.tv_charge_time);
-        btnStopCharge = activity.findViewById(R.id.btn_stop_charging);
         pbCharge = activity.findViewById(R.id.pb_charge_progress);
 
         init();
@@ -66,65 +63,40 @@ public class DashboardController implements IUiRefresher {
         if (btnRegenOff != null) btnRegenOff.setOnClickListener(v -> sendCarCmd(34, 0));
         if (btnRegenLow != null) btnRegenLow.setOnClickListener(v -> sendCarCmd(34, 1));
         if (btnRegenHigh != null) btnRegenHigh.setOnClickListener(v -> sendCarCmd(34, 2));
+        View btnStopCharge = activity.findViewById(R.id.btn_stop_charging);
         if (btnStopCharge != null) btnStopCharge.setOnClickListener(v -> sendCarCmd(51, 1));
     }
 
     private void sendCarCmd(int id, int val) {
-        CarStates.getCar(activity).getTools().sendInt(1, id, val); // MODULE_MAIN = 1
+        // MODULE_MAIN = 0 is standard for SYU car command delivery
+        CarStates.getCar(activity).getTools().sendInt(0, id, val); 
     }
 
     @Override
     public void onRefresh(int[] ints, long[] lngs, float[] flts, String[] strs, byte[] byts) {
         if (ints == null || ints.length < 2) return;
         
+        // After our CarStates fix, ints[0] is updateCode, ints[1] is the first value
         int updateCode = ints[0];
         int value = ints[1];
         
-        // Comprehensive dispatch for both modules
-        switch (updateCode) {
-            case 101: // Speed
-            case 4:   // Ready
-            case 10:  // Ready alt
-                updateDrivingData(updateCode, value);
-                break;
-            case 114: // Gear (Module 0) or SOC (Module 7)
-            case 115: // Brake (Module 0) or Charging (Module 7)
-            case 113: // Range
-            case 116: // Charge Time
-            case 109: // Drive Mode
-            case 110: // Regen Mode
-                // Both modules use some of these codes, but we update the same UI
-                updateDrivingData(updateCode, value);
-                updateCanbusData(updateCode, value);
-                break;
-        }
-    }
-
-    public void updateDrivingData(int updateCode, int value) {
         activity.runOnUiThread(() -> {
             switch (updateCode) {
-                case 101: tvSpeed.setText(String.valueOf(value)); break;
-                case 114: updateGearDisplay(value); break;
-                case 115: updateBrakeDisplay(value == 1); break;
-                case 4: 
-                case 10: Log.d("Dashboard", "Ready: " + value); break;
-            }
-        });
-    }
-
-    public void updateCanbusData(int updateCode, int value) {
-        activity.runOnUiThread(() -> {
-            switch (updateCode) {
-                case 114:
-                    tvSOC.setText(value + "%");
+                case 101: if (tvSpeed != null) tvSpeed.setText(String.valueOf(value)); break;
+                case 114: 
+                    updateGearDisplay(value); // Module 0: Gear
+                    if (tvSOC != null) tvSOC.setText(value + "%"); // Module 7: SOC
                     if (tvChargeSOC != null) tvChargeSOC.setText(value + "%");
                     if (pbCharge != null) pbCharge.setProgress(value);
                     break;
-                case 113: tvRange.setText(value + " km"); break;
-                case 115: updateChargingMode(value == 1); break;
+                case 115: 
+                    updateBrakeDisplay(value == 1); // Module 0: Brake
+                    updateChargingMode(value == 1); // Module 7: Charging
+                    break;
+                case 113: if (tvRange != null) tvRange.setText(value + " km"); break;
                 case 116: updateChargeTime(value); break;
                 case 109: currentDriveMode = value; updateDriveModeDisplay(value); break;
-                case 110: updateRegenModeDisplay(value); break;
+                case 110: currentRegenMode = value; updateRegenModeDisplay(value); break;
             }
         });
     }
@@ -166,13 +138,14 @@ public class DashboardController implements IUiRefresher {
     }
 
     private void updateGearDisplay(int value) {
+        if (tvGear == null) return;
         String gears = "R N D";
         SpannableString spannable = new SpannableString(gears);
         int start = -1;
         switch (value) {
-            case 1: start = 0; break;
-            case 0: start = 2; break;
-            case 2: start = 4; break;
+            case 1: start = 0; break; // Reverse
+            case 0: start = 2; break; // Neutral
+            case 2: start = 4; break; // Drive
         }
         if (start != -1) {
             spannable.setSpan(new ForegroundColorSpan(Color.WHITE), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
