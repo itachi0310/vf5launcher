@@ -126,10 +126,6 @@ public class WindowUtil {
                     return;
                 }
                 intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
-                if (intent == null) {
-                    Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
-                    return;
-                }
                 if (AAppPackageNmae.equals("com.syu.camera360")) {
                     AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
                 }
@@ -180,10 +176,6 @@ public class WindowUtil {
                     return;
                 }
                 intent = FytPackage.getIntent(LauncherApplication.sApp, AppPackageNmae);
-                if (intent == null) {
-                    Log.e("LZP", "Không tìm thấy Intent cho package: " + AppPackageNmae);
-                    return;
-                }
                 if (AppPackageNmae.equals("com.syu.camera360")) {
                     AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
                 }
