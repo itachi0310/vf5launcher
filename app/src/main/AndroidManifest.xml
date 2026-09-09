@@ -26,7 +26,21 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="VF5 Regen Monitor"
+        android:name="com.vf5regenlauncher.util.launcher.LauncherApplication"
+        android:hardwareAccelerated="true"
+        android:largeHeap="false"
+        android:supportsRtl="false"
         android:theme="@style/Theme.AppCompat.NoActionBar">
+
+<!--        <meta-data-->
+<!--            android:name="client"-->
+<!--            android:value="SYU"/>-->
+<!--        <meta-data-->
+<!--            android:name="ui_id"-->
+<!--            android:value="2"/>-->
+<!--        <meta-data-->
+<!--            android:name="platform"-->
+<!--            android:value="9853"/>-->
 
         <activity
             android:name="com.vf5regenlauncher.AndrewLauncherActivity"

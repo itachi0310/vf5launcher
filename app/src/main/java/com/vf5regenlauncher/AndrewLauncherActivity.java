@@ -4,10 +4,16 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
+
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.vf5regenlauncher.util.WindowUtil;
 
 public class AndrewLauncherActivity extends AppCompatActivity {
     private static AndrewLauncherActivity instance;
@@ -18,6 +24,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     private CanbusConnector canbusConnector;
     private AppEmbedManager appEmbedManager;
 
+    public Handler handler = new Handler(Looper.getMainLooper());
+
     public static AndrewLauncherActivity getInstance() {
         return instance;
     }
@@ -25,6 +33,12 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     public AppEmbedManager getAppEmbedManager() {
         return appEmbedManager;
     }
+
+    private State mState = State.WORKSPACE;
+
+    private State mOnResumeState = State.NONE;
+
+    private View pipViews;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +67,11 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         canbusConnector.addListener(canbusKeyHandler);
         
         canbusConnector.connect();
+
+        WindowUtil.initDefaultApp();
         
         // Kiểm tra nếu Activity được mở bởi phím Mode (Intent Radio)
-        handleSpecialIntents(getIntent());
+//        handleSpecialIntents(getIntent());
     }
 
     @Override
@@ -183,25 +199,55 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         }
     }
 
+    public boolean isAllAppsVisible() {
+        return this.mState == State.APPS_CUSTOMIZE || this.mOnResumeState == State.APPS_CUSTOMIZE;
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         // Khi quay lại launcher, đảm bảo rect được update đúng
-        if (appEmbedManager != null) {
-            appEmbedManager.updatePipRect();
-            appEmbedManager.ensureMapRunning();
-        }
-        // Setup listener để theo dõi khi mất/regain focus
-        getWindow().getDecorView().setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus && appEmbedManager != null) {
-                Log.d("Launcher", "Launcher regained focus, updating PIP rect");
-                appEmbedManager.updatePipRect();
-                appEmbedManager.ensureMapRunning();
-            } else if (!hasFocus) {
-                Log.d("Launcher", "Launcher lost focus, maintaining PIP state");
-                // Không gọi hidePip() - để map ở background mode, không fullscreen
+//        if (appEmbedManager != null) {
+//            appEmbedManager.updatePipRect();
+//            appEmbedManager.ensureMapRunning();
+//        }
+//        // Setup listener để theo dõi khi mất/regain focus
+//        getWindow().getDecorView().setOnFocusChangeListener((v, hasFocus) -> {
+//            if (hasFocus && appEmbedManager != null) {
+//                Log.d("Launcher", "Launcher regained focus, updating PIP rect");
+//                appEmbedManager.updatePipRect();
+//                appEmbedManager.ensureMapRunning();
+//            } else if (!hasFocus) {
+//                Log.d("Launcher", "Launcher lost focus, maintaining PIP state");
+//                // Không gọi hidePip() - để map ở background mode, không fullscreen
+//            }
+//        });
+
+//        Log.d("Launcher", "onResume----->");
+//        if (isAllAppsVisible()) {
+//            WindowUtil.removePip(null);
+//        } else {
+//            Log.d("LZP", "startMapPip");
+//            WindowUtil.startMapPip(null, false, 0);
+//        }
+
+        new Thread(new Runnable() {
+            @Override // java.lang.Runnable
+            public void run() {
+                if (!AndrewLauncherActivity.this.isAllAppsVisible()) {
+                    Log.d("Launcher","onResume----->startMapPip");
+                    Log.d("Launcher","!AndrewLauncherActivity.this.isAllAppsVisible() " + !AndrewLauncherActivity.this.isAllAppsVisible());
+                    if (appEmbedManager != null) {
+                        appEmbedManager.updatePipRect();
+//                        appEmbedManager.ensureMapRunning();
+                    }
+                    WindowUtil.startMapPip();
+                } else {
+                    WindowUtil.removePip(AndrewLauncherActivity.this.pipViews);
+                }
             }
-        });
+        }).start();
+
     }
 
     @Override
@@ -228,5 +274,21 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // Không làm gì để tránh thoát Launcher bằng phím Back
+    }
+
+    private enum State {
+        NONE,
+        WORKSPACE,
+        APPS_CUSTOMIZE,
+        APPS_CUSTOMIZE_SPRING_LOADED;
+
+        /* JADX INFO: renamed from: values, reason: to resolve conflict with enum method */
+        public static State[] valuesCustom() {
+            State[] stateArrValuesCustom = values();
+            int length = stateArrValuesCustom.length;
+            State[] stateArr = new State[length];
+            System.arraycopy(stateArrValuesCustom, 0, stateArr, 0, length);
+            return stateArr;
+        }
     }
 }

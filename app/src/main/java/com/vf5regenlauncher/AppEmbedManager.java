@@ -12,13 +12,17 @@ import android.util.Log;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.FrameLayout;
+
+import com.vf5regenlauncher.util.WindowUtil;
+import com.vf5regenlauncher.util.android.os.SystemProperties;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
 
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
-    private static final String PREFS_RECT = "map_pip_rect";
+    public static final String PREFS_RECT = "map_pip_rect";
     private final Activity activity;
     private final FrameLayout container;
     private String currentPackage;
@@ -41,7 +45,7 @@ public class AppEmbedManager {
             public boolean onPreDraw() {
                 container.getViewTreeObserver().removeOnPreDrawListener(this);
                 updatePipRect();
-                ensureMapRunning();
+//                ensureMapRunning();
                 return true;
             }
         });
@@ -73,16 +77,66 @@ public class AppEmbedManager {
      * Cập nhật tọa độ, kiểm tra xem rect có thay đổi không trước khi gửi Broadcast.
      * Tuyệt đối không gọi startActivity ở đây.
      */
+//    public void updatePipRect() {
+//        if (container == null || container.getWidth() <= 0 || container.getHeight() <= 0) {
+//            Log.w(TAG, "Container not ready: width=" + (container != null ? container.getWidth() : "null")
+//                    + ", height=" + (container != null ? container.getHeight() : "null"));
+//            return;
+//        }
+//
+//        int[] location = new int[2];
+//        container.getLocationOnScreen(location);
+//        String rect = String.format(Locale.US, "%d %d %d %d",
+//                location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
+//
+//        // Chỉ gửi broadcast nếu rect thay đổi để tránh spam
+//        if (rect.equals(lastRectSent)) {
+//            Log.d(TAG, "Rect unchanged, skipping broadcast");
+//            return;
+//        }
+//
+//        lastRectSent = rect;
+//        Log.d(TAG, "updatePipRect: " + rect);
+//
+//        // Lưu rect vào SharedPreferences để khôi phục khi restart
+//        SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+//        sp.edit().putString(PREFS_RECT, rect).apply();
+//
+//        // 1. Ghi thuộc tính hệ thống
+//        setSystemProperty("sys.lsec.pip_rect", rect);
+//        setSystemProperty("sys.lsec.pip_show", "1");
+//        setSystemProperty("sys.lsec.pip_mode", "1");
+//
+//        // 2. Gửi Broadcast chính
+//        Intent i = new Intent("com.syu.action.PIP_RECT");
+//        i.putExtra("pip_rect", rect);
+//        i.putExtra("rect", rect);
+//        i.putExtra("show", true);
+//        activity.sendBroadcast(i);
+//
+//        // 3. Các broadcast phụ để tăng độ ổn định
+//        activity.sendBroadcast(new Intent("com.syu.pip.show").putExtra("show", true).putExtra("packagename", currentPackage));
+//        activity.sendBroadcast(new Intent("com.syu.pip.update").putExtra("rect", rect));
+//    }
+
     public void updatePipRect() {
+        try {
+            SystemProperties.set("persist.syu.launcher.haspip", "true");
+            SystemProperties.set("persist.lsec.radius", "12");
+        } catch (Throwable e) {
+        }
+        Intent intent = new Intent();
+        intent.setAction("android.intent.action.MAIN");
+        intent.addCategory("android.intent.category.HOME");
         if (container == null || container.getWidth() <= 0 || container.getHeight() <= 0) {
-            Log.w(TAG, "Container not ready: width=" + (container != null ? container.getWidth() : "null") 
+            Log.w(TAG, "Container not ready: width=" + (container != null ? container.getWidth() : "null")
                     + ", height=" + (container != null ? container.getHeight() : "null"));
             return;
         }
 
         int[] location = new int[2];
         container.getLocationOnScreen(location);
-        String rect = String.format(Locale.US, "%d %d %d %d", 
+        String rect = String.format(Locale.US, "%d %d %d %d",
                 location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
 
         // Chỉ gửi broadcast nếu rect thay đổi để tránh spam
@@ -93,26 +147,11 @@ public class AppEmbedManager {
 
         lastRectSent = rect;
         Log.d(TAG, "updatePipRect: " + rect);
-        
+
         // Lưu rect vào SharedPreferences để khôi phục khi restart
         SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
         sp.edit().putString(PREFS_RECT, rect).apply();
-        
-        // 1. Ghi thuộc tính hệ thống
-        setSystemProperty("sys.lsec.pip_rect", rect);
-        setSystemProperty("sys.lsec.pip_show", "1");
-        setSystemProperty("sys.lsec.pip_mode", "1");
-        
-        // 2. Gửi Broadcast chính
-        Intent i = new Intent("com.syu.action.PIP_RECT");
-        i.putExtra("pip_rect", rect);
-        i.putExtra("rect", rect);
-        i.putExtra("show", true);
-        activity.sendBroadcast(i);
-        
-        // 3. Các broadcast phụ để tăng độ ổn định
-        activity.sendBroadcast(new Intent("com.syu.pip.show").putExtra("show", true).putExtra("packagename", currentPackage));
-        activity.sendBroadcast(new Intent("com.syu.pip.update").putExtra("rect", rect));
+
     }
 
     /**
@@ -144,32 +183,35 @@ public class AppEmbedManager {
         updatePipRect();
         setSystemProperty("sys.lsec.force_pip", "1");
 
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            try {
-                PackageManager pm = activity.getPackageManager();
-                Intent intent = pm.getLaunchIntentForPackage(currentPackage);
-                if (intent == null) return;
+        WindowUtil.openPip(currentPackage);
 
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                
-                // Các extra bổ trợ - gửi rect đã lưu
-                intent.putExtra("force_pip", true);
-                intent.putExtra("pip_mode", 1);
-                SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-                String savedRect = sp.getString(PREFS_RECT, "");
-                if (!savedRect.isEmpty()) {
-                    intent.putExtra("pip_rect", savedRect);
-                    intent.putExtra("rect", savedRect);
-                }
-                
-                activity.startActivity(intent);
-                Log.d(TAG, "✓ Map launch command sent via startActivity with rect: " + savedRect);
-            } catch (Exception e) {
-                Log.e(TAG, "Launch map failed", e);
-            }
-        }, 200);
+//        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+//            try {
+//                PackageManager pm = activity.getPackageManager();
+//                Intent intent = pm.getLaunchIntentForPackage(currentPackage);
+//
+//                if (intent == null) return;
+//
+//                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+//                intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+//
+//                // Các extra bổ trợ - gửi rect đã lưu
+//                intent.putExtra("force_pip", true);
+//                intent.putExtra("pip_mode", 1);
+//                SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+//                String savedRect = sp.getString(PREFS_RECT, "");
+//                if (!savedRect.isEmpty()) {
+//                    intent.putExtra("pip_rect", savedRect);
+//                    intent.putExtra("rect", savedRect);
+//                }
+//
+//                activity.startActivity(intent);
+//                Log.d(TAG, "✓ Map launch command sent via startActivity with rect: " + savedRect);
+//            } catch (Exception e) {
+//                Log.e(TAG, "Launch map failed", e);
+//            }
+//        }, 200);
     }
 
     public void hidePip() {

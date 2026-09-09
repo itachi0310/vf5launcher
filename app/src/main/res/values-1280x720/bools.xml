@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="debug_memory_enabled" />
+    <bool name="config_apps_widgets_detach" />
+    <bool name="is_large_tablet" />
+    <bool name="is_tablet" />
+</resources>
