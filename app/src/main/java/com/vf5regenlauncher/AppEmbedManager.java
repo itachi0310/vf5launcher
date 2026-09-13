@@ -54,6 +54,24 @@ public class AppEmbedManager {
         setupWindowFocusListener();
     }
     
+    /**
+     * Gọi khi Activity được Resume.
+     * Đảm bảo Task hệ thống được kéo lên trên và đúng vị trí.
+     */
+    public void onResume() {
+        Log.d(TAG, "AppEmbedManager onResume - Refreshing Task Layout");
+        
+        // 1. Đảm bảo các cờ hệ thống luôn ở trạng thái Task-level
+        setSystemProperty("sys.lsec.pip_show", "1");
+        setSystemProperty("sys.lsec.pip_mode", "1");
+        
+        // 2. Gửi lệnh cập nhật Rect sau một khoảng trễ ngắn để layout ổn định
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            updatePipRect();
+            ensureMapRunning();
+        }, 300);
+    }
+
     private void setupWindowFocusListener() {
         Window window = activity.getWindow();
         window.getDecorView().setOnSystemUiVisibilityChangeListener(visibility -> {
@@ -98,16 +116,18 @@ public class AppEmbedManager {
         SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
         sp.edit().putString(PREFS_RECT, rect).apply();
         
-        // 1. Ghi thuộc tính hệ thống
+        // 1. Ghi thuộc tính hệ thống - Chế độ Window/Task-level Layout
         setSystemProperty("sys.lsec.pip_rect", rect);
         setSystemProperty("sys.lsec.pip_show", "1");
         setSystemProperty("sys.lsec.pip_mode", "1");
+        setSystemProperty("persist.sys.lsec.pip_mode", "1"); // Đảm bảo ghi nhớ chế độ task
         
         // 2. Gửi Broadcast chính
         Intent i = new Intent("com.syu.action.PIP_RECT");
         i.putExtra("pip_rect", rect);
         i.putExtra("rect", rect);
         i.putExtra("show", true);
+        i.putExtra("pip_mode", 1); // Task-level layout
         activity.sendBroadcast(i);
         
         // 3. Các broadcast phụ để tăng độ ổn định
@@ -140,9 +160,10 @@ public class AppEmbedManager {
     }
 
     private void launchMap() {
-        // Đảm bảo rect được gửi trước khi launch
+        // Đảm bảo rect và chế độ task được gửi trước khi launch
         updatePipRect();
         setSystemProperty("sys.lsec.force_pip", "1");
+        setSystemProperty("sys.lsec.pip_mode", "1");
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             try {
@@ -154,9 +175,11 @@ public class AppEmbedManager {
                 intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
                 
-                // Các extra bổ trợ - gửi rect đã lưu
+                // Các extra quan trọng cho Task-level layout
                 intent.putExtra("force_pip", true);
                 intent.putExtra("pip_mode", 1);
+                intent.putExtra("pip_show", true);
+
                 SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
                 String savedRect = sp.getString(PREFS_RECT, "");
                 if (!savedRect.isEmpty()) {
