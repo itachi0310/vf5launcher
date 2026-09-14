@@ -72,8 +72,8 @@ public class SettingsActivity extends AppCompatActivity {
         if (tvCurrentMap != null) tvCurrentMap.setText("Hiện tại: " + name);
         
         // Cập nhật lại app embed ngay lập tức nếu launcher đang chạy
-        if (AndrewLauncherActivity.getInstance() != null && AndrewLauncherActivity.getInstance().getAppEmbedManager() != null) {
-            AndrewLauncherActivity.getInstance().getAppEmbedManager().launchApp(pkg);
+        if (AndrewLauncherActivity.getInstance() != null && AndrewLauncherActivity.getInstance().getAppWindowManager() != null) {
+            AndrewLauncherActivity.getInstance().getAppWindowManager().launchApp(pkg);
         }
     }
 }

@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -43,6 +44,10 @@ public class AppWindowManager {
 
     private static final float APP_HEIGHT_RATIO = 0.70f;
     private static final long APPLY_DELAY_MS = 350L;
+    private static final long RETRY_DELAY_MS = 700L;
+    private static final int MAX_TASK_LOOKUP_ATTEMPTS = 3;
+    private static final String PREFS_NAME = "driving_prefs";
+    private static final String PREF_DEFAULT_MAP_PACKAGE = "default_map_package";
 
     // Android 10 WindowConfiguration values.
     private static final int WINDOWING_MODE_FULLSCREEN = 1;
@@ -72,7 +77,15 @@ public class AppWindowManager {
      */
     public void init() {
         logDisplayInfo();
-        logTaskInfo("init");
+        currentPackage = getSavedPackage();
+        logDiagnostic("init", -1);
+
+        if (currentPackage == null) {
+            Log.i(TAG, "WM|init no saved map package; waiting for Settings selection");
+            return;
+        }
+
+        scheduleRestore("init", APPLY_DELAY_MS);
     }
 
     /**
@@ -81,16 +94,8 @@ public class AppWindowManager {
      * We do not hide/show PIP. We only try to restore the task/window layout.
      */
     public void onResume() {
-        Log.d(TAG, "onResume - restoring Window/Task layout");
-
-        mainHandler.removeCallbacksAndMessages(null);
-
-        mainHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                restoreLayout();
-            }
-        }, APPLY_DELAY_MS);
+        Log.i(TAG, "WM|lifecycle=resume pkg=" + safePackage());
+        scheduleRestore("resume", APPLY_DELAY_MS);
     }
 
     /**
@@ -102,13 +107,14 @@ public class AppWindowManager {
             return false;
         }
 
-        currentPackage = packageName.trim();
+        final String targetPackage = packageName.trim();
+        currentPackage = targetPackage;
 
         Intent intent = launcherActivity.getPackageManager()
-                .getLaunchIntentForPackage(currentPackage);
+                .getLaunchIntentForPackage(targetPackage);
 
         if (intent == null) {
-            Log.e(TAG, "No launch intent for package: " + currentPackage);
+            Log.w(TAG, "WM|launch no launch intent pkg=" + targetPackage);
             return false;
         }
 
@@ -126,7 +132,7 @@ public class AppWindowManager {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             try {
                 options.setLaunchBounds(new Rect(appBounds));
-                Log.d(TAG, "setLaunchBounds = " + appBounds);
+                Log.d(TAG, "WM|launch bounds=" + appBounds);
             } catch (Throwable t) {
                 Log.w(TAG, "setLaunchBounds failed: " + t);
             }
@@ -138,7 +144,7 @@ public class AppWindowManager {
 
         try {
             launcherActivity.startActivity(intent, options.toBundle());
-            Log.d(TAG, "External app launched: " + currentPackage);
+            Log.i(TAG, "WM|launch requested pkg=" + targetPackage);
 
             /*
              * The new Activity needs a little time to become a task before we
@@ -147,14 +153,14 @@ public class AppWindowManager {
             mainHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    applyWindowTaskLayout(currentPackage);
+                    applyWindowTaskLayout(targetPackage, 0);
                 }
             }, APPLY_DELAY_MS);
 
             return true;
 
         } catch (Throwable t) {
-            Log.e(TAG, "launchApp failed: " + currentPackage, t);
+            Log.w(TAG, "WM|launch failed pkg=" + targetPackage + " error=" + t);
             return false;
         }
     }
@@ -171,12 +177,18 @@ public class AppWindowManager {
         Rect bounds = calculateAppBounds();
         lastAppBounds = new Rect(bounds);
 
-        Log.d(TAG, "restoreLayout: appBounds=" + bounds);
-
         if (currentPackage != null && !currentPackage.isEmpty()) {
-            applyWindowTaskLayout(currentPackage);
+            int appTaskId = findTaskIdForPackage(currentPackage);
+            logDiagnostic("restore", appTaskId);
+
+            if (appTaskId >= 0) {
+                applyWindowTaskLayout(currentPackage, 0);
+            } else {
+                Log.i(TAG, "WM|restore task missing; relaunching pkg=" + currentPackage);
+                launchApp(currentPackage);
+            }
         } else {
-            Log.d(TAG, "restoreLayout: no external app selected");
+            Log.i(TAG, "WM|restore skipped; no selected package");
         }
     }
 
@@ -193,10 +205,6 @@ public class AppWindowManager {
 
         Rect bounds = new Rect(0, 0, width, appBottom);
 
-        Log.d(TAG, "calculateAppBounds: display="
-                + width + "x" + height
-                + ", app=" + bounds
-                + ", launcherHeight=" + (height - appBottom));
 
         return bounds;
     }
@@ -215,7 +223,7 @@ public class AppWindowManager {
         return new Rect(0, appBottom, width, height);
     }
 
-    private void applyWindowTaskLayout(String packageName) {
+    private void applyWindowTaskLayout(String packageName, int attempt) {
         if (packageName == null || packageName.isEmpty()) {
             return;
         }
@@ -230,12 +238,11 @@ public class AppWindowManager {
             Rect appBounds = calculateAppBounds();
             int appTaskId = findTaskIdForPackage(packageName);
 
-            Log.d(TAG, "applyWindowTaskLayout: package="
-                    + packageName + ", taskId=" + appTaskId);
+            logDiagnostic("apply#" + attempt, appTaskId);
 
             if (appTaskId < 0) {
-                Log.w(TAG, "Task not found yet; will retry");
-                retryApply(packageName);
+                Log.w(TAG, "WM|apply task missing pkg=" + packageName + " attempt=" + attempt);
+                retryApply(packageName, attempt + 1);
                 return;
             }
 
@@ -269,27 +276,59 @@ public class AppWindowManager {
                 }
             }
 
-            logTaskInfo("after apply");
+            logDiagnostic("apply-complete", appTaskId);
 
         } finally {
             applyingLayout = false;
         }
     }
 
-    private void retryApply(final String packageName) {
+    private void retryApply(final String packageName, final int attempt) {
+        if (attempt > MAX_TASK_LOOKUP_ATTEMPTS) {
+            Log.w(TAG, "WM|apply gave up; task was not found pkg=" + packageName);
+            return;
+        }
+
         mainHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (findTaskIdForPackage(packageName) >= 0) {
-                    applyWindowTaskLayout(packageName);
-                }
+                applyWindowTaskLayout(packageName, attempt);
             }
-        }, 700L);
+        }, RETRY_DELAY_MS);
     }
 
+    private String getSavedPackage() {
+        SharedPreferences preferences = launcherActivity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String packageName = preferences.getString(PREF_DEFAULT_MAP_PACKAGE, null);
+        return packageName == null || packageName.trim().isEmpty() ? null : packageName.trim();
+    }
+
+    private void scheduleRestore(final String reason, long delayMs) {
+        mainHandler.removeCallbacksAndMessages(null);
+        mainHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "WM|restore scheduled reason=" + reason);
+                restoreLayout();
+            }
+        }, delayMs);
+    }
+
+    private String safePackage() {
+        return currentPackage == null ? "none" : currentPackage;
+    }
+
+    private void logDiagnostic(String phase, int appTaskId) {
+        Log.i(TAG, "WM|phase=" + phase
+                + " pkg=" + safePackage()
+                + " launcherTask=" + launcherActivity.getTaskId()
+                + " appTask=" + appTaskId
+                + " appBounds=" + calculateAppBounds()
+                + " sdk=" + Build.VERSION.SDK_INT);
+    }
     /**
-     * Try to create:
      *
+     * Try to create:
      *   external app = SPLIT_SCREEN_PRIMARY
      *   launcher      = SPLIT_SCREEN_SECONDARY
      *
@@ -596,6 +635,27 @@ public class AppWindowManager {
         return null;
     }
 
+    private Field findField(Class<?> clazz, String name) {
+        try {
+            Field field = clazz.getField(name);
+            field.setAccessible(true);
+            return field;
+        } catch (Throwable ignored) {
+        }
+
+        Class<?> current = clazz;
+        while (current != null && current != Object.class) {
+            try {
+                Field field = current.getDeclaredField(name);
+                field.setAccessible(true);
+                return field;
+            } catch (Throwable ignored) {
+            }
+            current = current.getSuperclass();
+        }
+        return null;
+    }
+
     private int findTaskIdForPackage(String packageName) {
         if (packageName == null || packageName.isEmpty()) {
             return -1;
@@ -675,8 +735,18 @@ public class AppWindowManager {
                         ? "null"
                         : task.topActivity.flattenToShortString();
 
+                int displayId = -1;
+                try {
+                    Field f = findField(task.getClass(), "displayId");
+                    if (f != null) {
+                        displayId = f.getInt(task);
+                    }
+                } catch (Throwable ignored) {
+                }
+
                 Log.d(TAG,
                         "taskId=" + task.id
+                                + ", displayId=" + displayId
                                 + ", numActivities=" + task.numActivities
                                 + ", top=" + top
                 );
