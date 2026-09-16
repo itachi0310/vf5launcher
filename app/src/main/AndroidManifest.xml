@@ -47,7 +47,7 @@
             android:exported="true"
             android:label="Andrew Launcher"
             android:screenOrientation="landscape"
-            android:launchMode="singleInstance"
+            android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true">
             <intent-filter android:priority="1000">
@@ -76,6 +76,16 @@
             android:exported="false"
             android:screenOrientation="landscape"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <service android:name="com.vf5regenlauncher.MusicUpdateService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.fyt.launcher.music" />
+                <action android:name="com.fyt.launcher.btav" />
+                <action android:name="action.fyt.music" />
+                <action android:name="com.syu.music.notifier" />
+            </intent-filter>
+        </service>
 
 <!--        <activity-->
 <!--            android:name=".MainActivity"-->

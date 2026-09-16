@@ -91,59 +91,71 @@
             android:layout_height="0dp"
             android:layout_weight="50"
             android:orientation="vertical"
-            android:padding="15dp"
-            android:gravity="center_vertical">
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="4dp"
+            android:gravity="bottom">
 
-            <!-- Chế độ lái -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Chế độ lái"
-                android:textColor="#AAAAAA"
-                android:textSize="16sp"
-                android:layout_marginBottom="10dp"/>
-
+            <!-- Dòng 1: Chế độ lái (Tiêu đề bên trái, Cụm nút bên phải) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:background="@drawable/bg_button_unselected"
-                android:padding="2dp">
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
 
                 <TextView
-                    android:id="@+id/btn_mode_sport"
                     android:layout_width="0dp"
-                    android:layout_height="45dp"
-                    android:layout_weight="1"
-                    android:text="Thể thao"
-                    android:gravity="center"
-                    android:textColor="#FFFFFF"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground" />
+                    android:layout_height="wrap_content"
+                    android:layout_weight="3.0"
+                    android:text="Chế độ lái"
+                    android:textColor="#AAAAAA"
+                    android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/btn_mode_eco"
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="45dp"
-                    android:layout_weight="1"
-                    android:text="Tiết kiệm"
-                    android:gravity="center"
-                    android:textColor="#FFFFFF"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground" />
+                    android:layout_height="wrap_content"
+                    android:layout_weight="7.0"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_button_unselected"
+                    android:padding="2dp">
+
+                    <TextView
+                        android:id="@+id/btn_mode_sport"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Thể thao"
+                        android:gravity="center"
+                        android:textColor="#FFFFFF"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground" />
+
+                    <TextView
+                        android:id="@+id/btn_mode_eco"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Tiết kiệm"
+                        android:gravity="center"
+                        android:textColor="#FFFFFF"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- Chế độ phục hồi -->
+            <!-- Chế độ phục hồi (Quay lại mẫu cũ: Tiêu đề trên, Nút dưới) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Chế độ phục hồi"
+                android:text="Phanh tái sinh"
                 android:textColor="#AAAAAA"
-                android:textSize="16sp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="10dp"/>
+                android:textSize="15sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -155,7 +167,7 @@
                 <TextView
                     android:id="@+id/btn_regen_off"
                     android:layout_width="0dp"
-                    android:layout_height="45dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
                     android:text="Tắt"
                     android:gravity="center"
@@ -167,7 +179,7 @@
                 <TextView
                     android:id="@+id/btn_regen_low"
                     android:layout_width="0dp"
-                    android:layout_height="45dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
                     android:text="Thấp"
                     android:gravity="center"
@@ -179,7 +191,7 @@
                 <TextView
                     android:id="@+id/btn_regen_high"
                     android:layout_width="0dp"
-                    android:layout_height="45dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
                     android:text="Cao"
                     android:gravity="center"

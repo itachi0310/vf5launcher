@@ -1,31 +1,58 @@
 package com.syu.ipc;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
-public class ModuleObject implements Parcelable {
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001034_com.android.launcher34.apk:bin/autolib.jar:com/syu/ipc/ModuleObject.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
+public class ModuleObject {
     public float[] flts;
     public int[] ints;
     public String[] strs;
 
-    public ModuleObject() {}
-
-    protected ModuleObject(Parcel in) {
-        ints = in.createIntArray();
-        flts = in.createFloatArray();
-        strs = in.createStringArray();
+    public ModuleObject() {
     }
 
-    public static final Creator<ModuleObject> CREATOR = new Creator<ModuleObject>() {
-        @Override public ModuleObject createFromParcel(Parcel in) { return new ModuleObject(in); }
-        @Override public ModuleObject[] newArray(int size) { return new ModuleObject[size]; }
-    };
+    public ModuleObject(int value) {
+        this.ints = new int[]{value};
+    }
 
-    @Override public int describeContents() { return 0; }
+    public ModuleObject(int value, String strValue) {
+        this.ints = new int[]{value};
+        this.strs = new String[]{strValue};
+    }
 
-    @Override public void writeToParcel(Parcel dest, int flags) {
-        dest.writeIntArray(ints);
-        dest.writeFloatArray(flts);
-        dest.writeStringArray(strs);
+    public ModuleObject(int[] ints) {
+        this.ints = ints;
+    }
+
+    public ModuleObject(String value) {
+        this.strs = new String[]{value};
+    }
+
+    public static boolean checkInts(ModuleObject obj, int min) {
+        return (obj == null || obj.ints == null || obj.ints.length < min) ? false : true;
+    }
+
+    public static int get(ModuleObject obj, int valueIfNotOk) {
+        if (obj != null && obj.ints != null && obj.ints.length >= 1) {
+            return obj.ints[0];
+        }
+        return valueIfNotOk;
+    }
+
+    public static String get(ModuleObject obj, String valueIfNotOk) {
+        if (obj != null && obj.strs != null && obj.strs.length >= 1) {
+            return obj.strs[0];
+        }
+        return valueIfNotOk;
+    }
+
+    public static int get(RemoteModuleProxy proxy, int getCode, int valueIfNotOk) {
+        ModuleObject obj = proxy.get(getCode, null, null, null);
+        if (obj != null && obj.ints != null && obj.ints.length >= 1) {
+            return obj.ints[0];
+        }
+        return valueIfNotOk;
     }
 }

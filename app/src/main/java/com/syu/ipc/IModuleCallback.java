@@ -6,11 +6,21 @@ import android.os.IInterface;
 import android.os.Parcel;
 import android.os.RemoteException;
 
+/* JADX WARN: Classes with same name are omitted, all sources:
+  190001034_com.android.launcher34.apk:bin/autolib.jar:com/syu/ipc/IModuleCallback.class
+  classes.dex
+ */
+/* JADX INFO: loaded from: classes.dex */
 public interface IModuleCallback extends IInterface {
-    void update(int updateCode, int[] ints, float[] flts, String[] strs) throws RemoteException;
+    void update(int i, int[] iArr, float[] fArr, String[] strArr) throws RemoteException;
 
+    /* JADX WARN: Classes with same name are omitted, all sources:
+  190001034_com.android.launcher34.apk:bin/autolib.jar:com/syu/ipc/IModuleCallback$Stub.class
+  classes.dex
+ */
     public static abstract class Stub extends Binder implements IModuleCallback {
         private static final String DESCRIPTOR = "com.syu.ipc.IModuleCallback";
+        static final int TRANSACTION_update = 1;
 
         public Stub() {
             attachInterface(this, DESCRIPTOR);
@@ -21,23 +31,27 @@ public interface IModuleCallback extends IInterface {
                 return null;
             }
             IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
-            if (iin != null && iin instanceof IModuleCallback) {
+            if (iin != null && (iin instanceof IModuleCallback)) {
                 return (IModuleCallback) iin;
             }
             return new Proxy(obj);
         }
 
-        @Override
+        @Override // android.os.IInterface
         public IBinder asBinder() {
             return this;
         }
 
-        @Override
+        @Override // android.os.Binder
         public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
             switch (code) {
                 case 1:
                     data.enforceInterface(DESCRIPTOR);
-                    update(data.readInt(), data.createIntArray(), data.createFloatArray(), data.createStringArray());
+                    int updateCode = data.readInt();
+                    int[] ints = data.createIntArray();
+                    float[] flts = data.createFloatArray();
+                    String[] strs = data.createStringArray();
+                    update(updateCode, ints, flts, strs);
                     return true;
                 case 1598968902:
                     reply.writeString(DESCRIPTOR);
@@ -47,30 +61,34 @@ public interface IModuleCallback extends IInterface {
             }
         }
 
+        /* JADX WARN: Classes with same name are omitted, all sources:
+  190001034_com.android.launcher34.apk:bin/autolib.jar:com/syu/ipc/IModuleCallback$Stub$Proxy.class
+  classes.dex
+ */
         private static class Proxy implements IModuleCallback {
             private IBinder mRemote;
 
             Proxy(IBinder remote) {
-                mRemote = remote;
+                this.mRemote = remote;
             }
 
-            @Override
+            @Override // android.os.IInterface
             public IBinder asBinder() {
-                return mRemote;
+                return this.mRemote;
             }
 
-            @Override
+            @Override // com.syu.ipc.IModuleCallback
             public void update(int updateCode, int[] ints, float[] flts, String[] strs) throws RemoteException {
-                Parcel _data = Parcel.obtain();
+                Parcel data = Parcel.obtain();
                 try {
-                    _data.writeInterfaceToken(DESCRIPTOR);
-                    _data.writeInt(updateCode);
-                    _data.writeIntArray(ints);
-                    _data.writeFloatArray(flts);
-                    _data.writeStringArray(strs);
-                    mRemote.transact(1, _data, null, 1);
+                    data.writeInterfaceToken(Stub.DESCRIPTOR);
+                    data.writeInt(updateCode);
+                    data.writeIntArray(ints);
+                    data.writeFloatArray(flts);
+                    data.writeStringArray(strs);
+                    this.mRemote.transact(1, data, null, 1);
                 } finally {
-                    _data.recycle();
+                    data.recycle();
                 }
             }
         }

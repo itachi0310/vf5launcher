@@ -85,8 +85,9 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
                     case 101: // Tốc độ
                         tvSpeed.setText(String.valueOf(value));
                         break;
-                    case 7:  // Nghi vấn Cần số
-                    case 12: // Nghi vấn Cần số
+                    case 7:  // Cần số
+                    case 12: // Cần số
+                        Log.d("SCAN_DATA", "Gear Code Received: " + code + " Value: " + value);
                         updateGearDisplay(value);
                         break;
                     case 115: // Chân phanh (Brake Pedal)

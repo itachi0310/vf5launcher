@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="14dp">
+
+    <!-- Phía bên TRÁI: Dữ liệu thời tiết (Nhiệt độ + Icon) giống Hình số 2 -->
+    <LinearLayout
+        android:id="@+id/weather_left_area"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true">
+
+        <TextView
+            android:id="@+id/tv_weather_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="29°C"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/iv_weather_icon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:src="@android:drawable/ic_menu_report_image"
+            android:contentDescription="Weather Status Icon" />
+
+        <TextView
+            android:id="@+id/tv_weather_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nhiều mây"
+            android:textColor="#A0AABF"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp"
+            android:visibility="visible" />
+
+        <TextView
+            android:id="@+id/tv_weather_city"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hà Nội"
+            android:textColor="#A0AABF"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Phía bên PHẢI: Đồng hồ lớn tự động cập nhật + Ngày tháng giống Hình số 2 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:gravity="right">
+
+        <!-- Đồng hồ điện tử tự cập nhật hệ thống -->
+        <TextClock
+            android:id="@+id/tc_weather_clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="hh:mm"
+            android:format24Hour="HH:mm"
+            android:textColor="#FFFFFF"
+            android:textSize="40sp"
+            android:fontFamily="sans-serif-thin"
+            android:textStyle="normal" />
+
+        <!-- Ngày tháng hiển thị bên dưới (Định dạng: Thứ.Năm/Tháng/Ngày giống hình mẫu) -->
+        <TextClock
+            android:id="@+id/tc_weather_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="EEE.yyyy/MM/dd"
+            android:format24Hour="EEE.yyyy/MM/dd"
+            android:textColor="#A0AABF"
+            android:textSize="13sp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+</RelativeLayout>

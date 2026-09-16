@@ -28,6 +28,18 @@ android {
     sourceSets {
         main {
             java.srcDirs += 'android'
+            java.exclude '**/fyt/adapter/HotseatAdapter.java'
+            java.exclude '**/fyt/car/**'
+            java.exclude '**/fyt/skin/**'
+            java.exclude '**/fyt/widget/**'
+            java.exclude '**/com/syu/back/**'
+            java.exclude '**/com/syu/car/**'
+            java.exclude '**/com/syu/popwindow/**'
+            java.exclude '**/com/syu/remote/**'
+            java.exclude '**/com/syu/util/**'
+            java.exclude '**/com/syu/utils/**'
+            java.exclude '**/com/syu/weather/**'
+            java.exclude '**/com/syu/widget/**'
         }
     }
 }

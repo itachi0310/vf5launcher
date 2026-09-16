@@ -23,6 +23,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     private DrivingAssistant drivingAssistant;
     private CanbusConnector canbusConnector;
     private AppEmbedManager appEmbedManager;
+    private MediaWidgetController mediaWidgetController;
+    private WeatherWidgetController weatherWidgetController;
 
     public Handler handler = new Handler(Looper.getMainLooper());
 
@@ -57,6 +59,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         topBarController = new TopBarController(this);
         drivingAssistant = new DrivingAssistant(this);
         appEmbedManager = new AppEmbedManager(this);
+        mediaWidgetController = new MediaWidgetController(this);
+        weatherWidgetController = new WeatherWidgetController(this);
 
         canbusConnector.addListener(dashboardController);
         canbusConnector.addListener(bottomNavController);
@@ -69,6 +73,24 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         canbusConnector.connect();
 
         WindowUtil.initDefaultApp();
+        
+        try {
+            registerReceiver(pipDieReceiver, new android.content.IntentFilter("com.lsec.pipdie"));
+        } catch (Throwable e) {
+            Log.e("Launcher", "Failed to register pipDieReceiver", e);
+        }
+        
+        // Buộc ép mở Map ngay khi khởi tạo xong (tránh việc Map không mở ở lần đầu)
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (appEmbedManager != null) {
+                    appEmbedManager.updatePipRect();
+                }
+                com.vf5regenlauncher.util.WindowUtil.visible = false; // Reset state để openPip không bị filter
+                com.vf5regenlauncher.util.WindowUtil.startMapPip();
+            }
+        }, 1500);
         
         // Kiểm tra nếu Activity được mở bởi phím Mode (Intent Radio)
 //        handleSpecialIntents(getIntent());
@@ -203,63 +225,75 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         return this.mState == State.APPS_CUSTOMIZE || this.mOnResumeState == State.APPS_CUSTOMIZE;
     }
 
+    private final android.content.BroadcastReceiver pipDieReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context context, Intent intent) {
+            if (intent != null && "com.lsec.pipdie".equals(intent.getAction())) {
+                Log.d("Launcher", "Received com.lsec.pipdie broadcast - restoring Map PiP");
+                com.vf5regenlauncher.util.WindowUtil.visible = false;
+                if (!isAllAppsVisible()) {
+                    if (appEmbedManager != null) {
+                        appEmbedManager.updatePipRect();
+                    }
+                    com.vf5regenlauncher.util.WindowUtil.startMapPip();
+                }
+            }
+        }
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d("Launcher", "onStart-----> reset/hide PiP");
+        com.vf5regenlauncher.util.WindowUtil.visible = false;
+        com.vf5regenlauncher.util.WindowUtil.removePip(null);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        // Khi quay lại launcher, đảm bảo rect được update đúng
-//        if (appEmbedManager != null) {
-//            appEmbedManager.updatePipRect();
-//            appEmbedManager.ensureMapRunning();
-//        }
-//        // Setup listener để theo dõi khi mất/regain focus
-//        getWindow().getDecorView().setOnFocusChangeListener((v, hasFocus) -> {
-//            if (hasFocus && appEmbedManager != null) {
-//                Log.d("Launcher", "Launcher regained focus, updating PIP rect");
-//                appEmbedManager.updatePipRect();
-//                appEmbedManager.ensureMapRunning();
-//            } else if (!hasFocus) {
-//                Log.d("Launcher", "Launcher lost focus, maintaining PIP state");
-//                // Không gọi hidePip() - để map ở background mode, không fullscreen
-//            }
-//        });
-
-//        Log.d("Launcher", "onResume----->");
-//        if (isAllAppsVisible()) {
-//            WindowUtil.removePip(null);
-//        } else {
-//            Log.d("LZP", "startMapPip");
-//            WindowUtil.startMapPip(null, false, 0);
-//        }
-
-        new Thread(new Runnable() {
-            @Override // java.lang.Runnable
-            public void run() {
-                if (!AndrewLauncherActivity.this.isAllAppsVisible()) {
-                    Log.d("Launcher","onResume----->startMapPip");
-                    Log.d("Launcher","!AndrewLauncherActivity.this.isAllAppsVisible() " + !AndrewLauncherActivity.this.isAllAppsVisible());
-                    if (appEmbedManager != null) {
-                        appEmbedManager.updatePipRect();
-//                        appEmbedManager.ensureMapRunning();
-                    }
-                    WindowUtil.startMapPip();
-                } else {
-                    WindowUtil.removePip(AndrewLauncherActivity.this.pipViews);
-                }
+        if (mediaWidgetController != null) {
+            mediaWidgetController.register();
+        }
+        if (weatherWidgetController != null) {
+            weatherWidgetController.register();
+        }
+        if (!isAllAppsVisible()) {
+            if (appEmbedManager != null) {
+                appEmbedManager.updatePipRect();
             }
-        }).start();
-
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d("Launcher", "onResume-----> startMapPip after 250ms");
+                    com.vf5regenlauncher.util.WindowUtil.startMapPip();
+                }
+            }, 250);
+        } else {
+            com.vf5regenlauncher.util.WindowUtil.removePip(pipViews);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        // Không gọi hidePip() - để map vẫn chạy ở background khi launcher không focus
+        if (mediaWidgetController != null) {
+            mediaWidgetController.unregister();
+        }
+        if (weatherWidgetController != null) {
+            weatherWidgetController.unregister();
+        }
         Log.d("Launcher", "Launcher paused - map remains in background mode");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        try {
+            unregisterReceiver(pipDieReceiver);
+        } catch (Throwable e) {
+            Log.e("Launcher", "Failed to unregister pipDieReceiver", e);
+        }
         if (canbusConnector != null) {
             canbusConnector.removeListener(dashboardController);
             canbusConnector.removeListener(bottomNavController);

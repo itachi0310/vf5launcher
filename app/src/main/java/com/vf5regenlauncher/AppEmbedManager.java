@@ -125,33 +125,48 @@ public class AppEmbedManager {
             SystemProperties.set("persist.lsec.radius", "12");
         } catch (Throwable e) {
         }
-        Intent intent = new Intent();
-        intent.setAction("android.intent.action.MAIN");
-        intent.addCategory("android.intent.category.HOME");
-        if (container == null || container.getWidth() <= 0 || container.getHeight() <= 0) {
-            Log.w(TAG, "Container not ready: width=" + (container != null ? container.getWidth() : "null")
-                    + ", height=" + (container != null ? container.getHeight() : "null"));
-            return;
+        if (container == null) return;
+        
+        // Buộc container phải measure/layout trước để lấy kích thước thật nếu nó đang bằng 0 lúc onCreate/onResume
+        if (container.getWidth() <= 0 || container.getHeight() <= 0) {
+            container.measure(android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+                    android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED));
+            Log.w(TAG, "Container dimensions 0, retrying or passing check for broadcast stability");
         }
 
         int[] location = new int[2];
         container.getLocationOnScreen(location);
+        
+        // Dự phòng kích thước chuẩn tỉ lệ nếu màn hình chưa layout xong (width/height vẫn bằng 0)
+        int w = container.getWidth() > 0 ? container.getWidth() : 520;
+        int h = container.getHeight() > 0 ? container.getHeight() : 380;
+        
         String rect = String.format(Locale.US, "%d %d %d %d",
-                location[0], location[1], location[0] + container.getWidth(), location[1] + container.getHeight());
-
-        // Chỉ gửi broadcast nếu rect thay đổi để tránh spam
-        if (rect.equals(lastRectSent)) {
-            Log.d(TAG, "Rect unchanged, skipping broadcast");
-            return;
-        }
+                location[0], location[1], location[0] + w, location[1] + h);
 
         lastRectSent = rect;
-        Log.d(TAG, "updatePipRect: " + rect);
+        Log.d(TAG, "updatePipRect forced sending: " + rect);
 
         // Lưu rect vào SharedPreferences để khôi phục khi restart
         SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
         sp.edit().putString(PREFS_RECT, rect).apply();
 
+        // 1. Ghi thuộc tính hệ thống ép ROM định tuyến PiP
+        setSystemProperty("sys.lsec.pip_rect", rect);
+        setSystemProperty("sys.lsec.pip_show", "1");
+        setSystemProperty("sys.lsec.pip_mode", "1");
+        setSystemProperty("sys.lsec.force_pip", "true");
+
+        // 2. Gửi Broadcast chính sang ROM
+        Intent i = new Intent("com.syu.action.PIP_RECT");
+        i.putExtra("pip_rect", rect);
+        i.putExtra("rect", rect);
+        i.putExtra("show", true);
+        activity.sendBroadcast(i);
+
+        // 3. Các broadcast phụ để tăng độ ổn định của cửa sổ nhúng
+        activity.sendBroadcast(new Intent("com.syu.pip.show").putExtra("show", true).putExtra("packagename", currentPackage));
+        activity.sendBroadcast(new Intent("com.syu.pip.update").putExtra("rect", rect));
     }
 
     /**

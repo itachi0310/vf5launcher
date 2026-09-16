@@ -1,20 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/container_main_app"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:orientation="horizontal"
+    android:weightSum="100"
+    android:background="#0A0F1A">
 
-    <!-- TaskView placeholder cho đầu Android ô tô (SYU) -->
-    <!-- Khi runtime, chúng ta sẽ add TaskView thực tế vào đây -->
+    <!-- 1. VÙNG CHỨA PIP MAP (Chiếm 60% của cột phải) -->
+    <FrameLayout
+        android:id="@+id/container_main_app"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="60"
+        android:background="#000000">
 
-    <TextView
-        android:id="@+id/tv_widget_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="Đang tải ứng dụng..."
-        android:textColor="#444444"
-        android:textSize="18sp" />
+        <TextView
+            android:id="@+id/tv_widget_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Đang tải bản đồ..."
+            android:textColor="#444444"
+            android:textSize="16sp" />
+    </FrameLayout>
 
-</FrameLayout>
+    <!-- 2. VÙNG CHỨA 2 WIDGET TIỆN ÍCH (Chiếm 40% còn lại bên phải) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="40"
+        android:orientation="vertical"
+        android:weightSum="100"
+        android:padding="8dp">
+
+        <!-- THẺ THỜI TIẾT (WEATHER) (Chiếm 30% chiều cao) -->
+        <FrameLayout
+            android:id="@+id/container_weather_widget"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="30"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_widget_card">
+
+            <include layout="@layout/layout_widget_weather_detail" />
+        </FrameLayout>
+
+        <!-- THẺ TRÌNH PHÁT NHẠC (MUSIC) (Chiếm 70% chiều cao) -->
+        <FrameLayout
+            android:id="@+id/container_music_widget"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="70"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_widget_card">
+
+            <include layout="@layout/layout_widget_music_detail" />
+        </FrameLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

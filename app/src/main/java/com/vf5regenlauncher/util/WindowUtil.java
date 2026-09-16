@@ -4,7 +4,6 @@ import static com.vf5regenlauncher.AppEmbedManager.PREFS_RECT;
 
 
 import android.app.ActivityManager;
-import android.app.IActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,6 +11,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.util.Log;
 import android.view.View;
+import java.lang.reflect.Method;
 
 import com.vf5regenlauncher.AndrewLauncherActivity;
 import com.vf5regenlauncher.util.android.os.SystemProperties;
@@ -22,60 +22,43 @@ import com.vf5regenlauncher.util.thread.ThreadManager;
 public class WindowUtil {
     private static final String TAG = "WindowUtil";
     private static Intent intent;
-    private static IActivityManager mActivityManager;
     public static String AppPackageNmae = "com.google.android.maps";
     public static boolean visible = true;
     public static int delayMillis = 0;
 
-    public static void initDefaultApp() {
-        intent = new Intent();
-        removePip(null);
-        AppPackageNmae = SystemProperties.get("persist.launcher.packagename", "com.google.android.maps");
-        if (AppPackageNmae.isEmpty()) {
+    public static void setPinnedStackVisibleSafe(boolean visibleState) {
+        try {
+            Class<?> activityManagerNativeClass = Class.forName("android.app.ActivityManagerNative");
+            Method getDefaultMethod = activityManagerNativeClass.getMethod("getDefault");
+            Object am = getDefaultMethod.invoke(null);
+            Method setPinnedStackVisibleMethod = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+            setPinnedStackVisibleMethod.invoke(am, visibleState);
+            Log.d(TAG, "setPinnedStackVisible via ActivityManagerNative success: " + visibleState);
+        } catch (Throwable e) {
             try {
-                SystemProperties.set("persist.launcher.packagename", FytPackage.googlemapAction);
-            } catch (Throwable e) {
+                Class<?> activityManagerClass = Class.forName("android.app.ActivityManager");
+                Method getServiceMethod = activityManagerClass.getMethod("getService");
+                Object am = getServiceMethod.invoke(null);
+                Method setPinnedStackVisibleMethod = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+                setPinnedStackVisibleMethod.invoke(am, visibleState);
+                Log.d(TAG, "setPinnedStackVisible via ActivityManager success: " + visibleState);
+            } catch (Throwable t) {
+                Log.e(TAG, "setPinnedStackVisible failed", t);
             }
-            AppPackageNmae = SystemProperties.get("persist.launcher.packagename", "com.google.android.maps");
+        }
+    }
+
+    public static void initDefaultApp() {
+        Log.d(TAG, "initDefaultApp");
+        intent = new Intent();
+        visible = false;
+        removePip(null);
+        AppPackageNmae = SystemProperties.get("persist.launcher.packagename", "");
+        if (AppPackageNmae.isEmpty()) {
+            SystemProperties.set("persist.launcher.packagename", FytPackage.googlemapAction);
+            AppPackageNmae = SystemProperties.get("persist.launcher.packagename", "");
         }
         Log.d("AppPackageNmae", "AppPackageNmae:" + AppPackageNmae);
-    }
-
-    private static IActivityManager getIActivityManager() {
-        if (mActivityManager == null) {
-            try {
-                mActivityManager = (IActivityManager) ActivityManager.class.getMethod("getService").invoke(null);
-                Log.d(TAG, "mActivityManager: " + mActivityManager);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return mActivityManager;
-    }
-
-
-    private static boolean isPinnedStackVisible() {
-        IActivityManager am = getIActivityManager();
-        Log.d(TAG, "IActivityManager am: " + am);
-        if (am != null) {
-            try {
-                return am.getPinnedStackVisible();
-            } catch (Throwable t) {
-                Log.e(TAG, "getPinnedStackVisible error: " + t.getMessage());
-            }
-        }
-        return false;
-    }
-
-    private static void setPinnedStackVisibleSafe(boolean visible) {
-        IActivityManager am = getIActivityManager();
-        if (am != null) {
-            try {
-                am.setPinnedStackVisible(visible);
-            } catch (Throwable t) {
-                Log.e(TAG, "setPinnedStackVisible error: " + t.getMessage());
-            }
-        }
     }
 
     public static void startMapPip() {
@@ -83,6 +66,15 @@ public class WindowUtil {
             @Override
             public void run() {
                 WindowUtil.openPip(AppPackageNmae);
+            }
+        });
+    }
+
+    public static void startMapPip(String PackageName) {
+        ThreadManager.getLongPool().execute(new Runnable() {
+            @Override
+            public void run() {
+                WindowUtil.openPip(PackageName);
             }
         });
     }
@@ -120,7 +112,7 @@ public class WindowUtil {
         Log.d("startMapPip","startMapPip:" + AAppPackageNmae);
         Log.d("LZP", "openPip AppPackageNmae : " + AAppPackageNmae);
         try {
-            if (!isPinnedStackVisible()) {
+            if ((!visible) &&Utils.topApp()) {
                 if (AAppPackageNmae.equals(FytPackage.fourcamera2Action)) {
                     Log.d("LZP", "fourcamera2Action");
                     return;
@@ -174,7 +166,7 @@ public class WindowUtil {
         Log.d("startMapPip","startMapPip:" + AppPackageNmae);
         Log.d("LZP", "openPip AppPackageNmae" + AppPackageNmae);
         try {
-            if (!isPinnedStackVisible()) {
+            if ((!visible) &&Utils.topApp()) {
                 if (AppPackageNmae.equals(FytPackage.fourcamera2Action)) {
                     Log.d("LZP", "fourcamera2Action");
                     return;
@@ -216,7 +208,7 @@ public class WindowUtil {
         Log.d("LZP", "removePip..");
         try {
             if (!AppPackageNmae.equals(FytPackage.fourcamera2Action)) {
-                if (isPinnedStackVisible()) {
+                if (visible || v == null) {
                     AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
