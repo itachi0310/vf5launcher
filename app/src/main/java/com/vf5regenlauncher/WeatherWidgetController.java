@@ -33,6 +33,21 @@ public class WeatherWidgetController {
         tvStatus = activity.findViewById(R.id.tv_weather_status);
         tvTemp = activity.findViewById(R.id.tv_weather_temp);
         ivIcon = activity.findViewById(R.id.iv_weather_icon);
+        
+        android.view.View container = activity.findViewById(R.id.container_weather_widget);
+        if (container != null) {
+            container.setOnClickListener(v -> openWeatherApp());
+        }
+    }
+
+    private void openWeatherApp() {
+        try {
+            Intent intent = activity.getPackageManager().getLaunchIntentForPackage("com.syu.weather");
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            }
+        } catch (Throwable ignored) {}
     }
 
     private final BroadcastReceiver weatherReceiver = new BroadcastReceiver() {

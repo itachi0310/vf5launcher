@@ -33,26 +33,32 @@
         android:weightSum="100"
         android:padding="8dp">
 
-        <!-- THẺ THỜI TIẾT (WEATHER) (Chiếm 30% chiều cao) -->
+        <!-- THẺ THỜI TIẾT (WEATHER) (Chiếm 40% chiều cao) -->
         <FrameLayout
             android:id="@+id/container_weather_widget"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="30"
+            android:layout_weight="40"
             android:layout_marginBottom="6dp"
-            android:background="@drawable/bg_widget_card">
+            android:background="@drawable/bg_widget_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
 
             <include layout="@layout/layout_widget_weather_detail" />
         </FrameLayout>
 
-        <!-- THẺ TRÌNH PHÁT NHẠC (MUSIC) (Chiếm 70% chiều cao) -->
+        <!-- THẺ TRÌNH PHÁT NHẠC (MUSIC) (Chiếm 60% chiều cao) -->
         <FrameLayout
             android:id="@+id/container_music_widget"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="70"
+            android:layout_weight="60"
             android:layout_marginTop="6dp"
-            android:background="@drawable/bg_widget_card">
+            android:background="@drawable/bg_widget_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
 
             <include layout="@layout/layout_widget_music_detail" />
         </FrameLayout>

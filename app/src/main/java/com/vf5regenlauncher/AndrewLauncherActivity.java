@@ -127,9 +127,9 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 // Hoặc bất kỳ mã nào nhảy khi bạn nhấn phím Cuộc gọi
                 if ((code == 7 || code == 12) && value == 1) {
                     Log.d("SCAN_DATA", "Call Key Intercepted via Canbus Code: " + code);
-                    if (dashboardController != null) {
-                        dashboardController.toggleRegenMode();
-                    }
+//                    if (dashboardController != null) {
+//                        dashboardController.toggleRegenMode();
+//                    }
                 }
             }
         }

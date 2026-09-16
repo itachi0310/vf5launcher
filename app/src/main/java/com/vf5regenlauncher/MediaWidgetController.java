@@ -47,6 +47,11 @@ public class MediaWidgetController {
         btnToggle = activity.findViewById(R.id.btn_music_toggle);
         btnNext = activity.findViewById(R.id.btn_music_next);
         ivAlbum = activity.findViewById(R.id.iv_music_album);
+        
+        View container = activity.findViewById(R.id.container_music_widget);
+        if (container != null) {
+            container.setOnClickListener(v -> openMusicApp());
+        }
 
         if (btnPrev != null) {
             btnPrev.setOnClickListener(v -> sendMediaCommand(PREVMUSIC));
@@ -59,18 +64,32 @@ public class MediaWidgetController {
         }
     }
 
+    private void openMusicApp() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.setComponent(new android.content.ComponentName("com.syu.music", "com.syu.music.MAct"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(intent);
+        } catch (Throwable e) {
+            try {
+                Intent intent = activity.getPackageManager().getLaunchIntentForPackage("com.syu.music");
+                if (intent != null) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    activity.startActivity(intent);
+                }
+            } catch (Throwable ignored) {}
+        }
+    }
+
     private void sendMediaCommand(String action) {
         try {
+            // Thử gửi lệnh cho ứng dụng nhạc chính
             Intent intent = new Intent(action);
-            // Thử gửi dưới dạng Service trước (theo mẫu Launcher34)
-            try {
-                activity.startService(intent);
-            } catch (Throwable ignored) {}
-            
-            // Gửi dưới dạng Broadcast
+            intent.setPackage("com.syu.music");
+            try { activity.startService(intent); } catch (Throwable ignored) {}
             activity.sendBroadcast(intent);
 
-            // Gửi lệnh tương ứng cho Bluetooth (nếu là Next/Prev/Play)
+            // Gửi lệnh tương ứng cho Bluetooth (nơi thường xử lý nhạc từ điện thoại)
             String btAction = null;
             if (action.equals(NEXTMUSIC)) btAction = BT_NEXT;
             else if (action.equals(PREVMUSIC)) btAction = BT_PREV;
@@ -78,11 +97,16 @@ public class MediaWidgetController {
 
             if (btAction != null) {
                 Intent btIntent = new Intent(btAction);
+                btIntent.setPackage("com.syu.bt");
                 try { activity.startService(btIntent); } catch (Throwable ignored) {}
                 activity.sendBroadcast(btIntent);
             }
             
-            Log.d(TAG, "Sent media command: " + action + (btAction != null ? " and " + btAction : ""));
+            // Một số ROM cần lệnh chung không có package
+            Intent generic = new Intent(action);
+            activity.sendBroadcast(generic);
+            
+            Log.d(TAG, "Sent media command stack for: " + action);
         } catch (Throwable e) {
             Log.e(TAG, "Failed to send media command", e);
         }

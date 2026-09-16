@@ -128,7 +128,12 @@ public class WindowUtil {
                 AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-//                        WindowUtil.intent.putExtra("force_pip", true);
+                        try {
+                            SystemProperties.set("sys.lsec.force_pip", "true");
+                        } catch (Throwable e) {
+                        }
+                        
+                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                         WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 
@@ -143,16 +148,13 @@ public class WindowUtil {
                             WindowUtil.intent.putExtra("rect", savedRect);
                         }
 
-                        try {
-                            SystemProperties.set("sys.lsec.force_pip", "true");
-                        } catch (Throwable e) {
-                        }
 //                        LauncherApplication.sApp.startActivity(WindowUtil.intent);
                         AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
+                        Log.d("LZP", "WindowUtil --- startActivity executed");
+                        visible = true;
                     }
                 }, delayMillis);
-                Log.d("LZP", "WindowUtil --- Open window done");
-                visible = true;
+                Log.d("LZP", "WindowUtil --- Open window scheduled");
                 delayMillis = 0;
                 return;
             }

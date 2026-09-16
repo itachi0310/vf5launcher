@@ -14,6 +14,7 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
     
     private float currentSpeedKmH = 0;
     private int currentRegenMode = -1;
+    private int currentGear = -1; // 1:R, 0:N, 2:D
     private int lastAssignedRegen = -1; // Để biết xe đổi do ta hay do người dùng
     
     private boolean optionHighwayEnabled = false;
@@ -64,11 +65,16 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
 
     @Override
     public void onDataReceived(int moduleId, int code, int value) {
-        if (moduleId == 0 && code == 101) {
-            currentSpeedKmH = value;
-            // Lưu lịch sử tốc độ để tính gia tốc
-            speedHistory.add(new SpeedPoint(currentSpeedKmH / 3.6f, System.currentTimeMillis()));
-            if (speedHistory.size() > 20) speedHistory.remove(0); // Giữ khoảng 2s dữ liệu
+        if (moduleId == 0) {
+            if (code == 101) {
+                currentSpeedKmH = value;
+                // Lưu lịch sử tốc độ để tính gia tốc
+                speedHistory.add(new SpeedPoint(currentSpeedKmH / 3.6f, System.currentTimeMillis()));
+                if (speedHistory.size() > 20) speedHistory.remove(0); // Giữ khoảng 2s dữ liệu
+            } else if (code == 7 || code == 12) {
+                currentGear = value;
+                Log.d(TAG, "DrivingAssistant updated Gear: " + currentGear);
+            }
         } else if (moduleId == 7 && code == 110) {
             currentRegenMode = value;
         }
@@ -97,8 +103,12 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
         
         // Không làm gì nếu đang trong thời gian khóa
         if (now - lastChangeTime < LOCK_DURATION) return;
-
-        // --- OPTION 1: HIGHWAY ---
+        
+        // Cực kỳ quan trọng: Khóa toàn bộ logic tự động nếu đang ở số R (Lùi)
+        // Số 1 trên VF5 thường là R
+        if (currentGear == 1) {
+            return;
+        }
         if (optionHighwayEnabled) {
             if (currentSpeedKmH >= 75) {
                 if (!isAboveHighwayThreshold) {
