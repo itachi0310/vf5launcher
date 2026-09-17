@@ -86,6 +86,7 @@ public class MediaWidgetController {
             // Thử gửi lệnh cho ứng dụng nhạc chính
             Intent intent = new Intent(action);
             intent.setPackage("com.syu.music");
+            intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
             try { activity.startService(intent); } catch (Throwable ignored) {}
             activity.sendBroadcast(intent);
 
@@ -98,12 +99,14 @@ public class MediaWidgetController {
             if (btAction != null) {
                 Intent btIntent = new Intent(btAction);
                 btIntent.setPackage("com.syu.bt");
+                btIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
                 try { activity.startService(btIntent); } catch (Throwable ignored) {}
                 activity.sendBroadcast(btIntent);
             }
             
             // Một số ROM cần lệnh chung không có package
             Intent generic = new Intent(action);
+            generic.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
             activity.sendBroadcast(generic);
             
             Log.d(TAG, "Sent media command stack for: " + action);

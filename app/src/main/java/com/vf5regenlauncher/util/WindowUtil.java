@@ -112,53 +112,60 @@ public class WindowUtil {
         Log.d("startMapPip","startMapPip:" + AAppPackageNmae);
         Log.d("LZP", "openPip AppPackageNmae : " + AAppPackageNmae);
         try {
-            if ((!visible) &&Utils.topApp()) {
-                if (AAppPackageNmae.equals(FytPackage.fourcamera2Action)) {
-                    Log.d("LZP", "fourcamera2Action");
-                    return;
-                }
-                intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
-                if (intent == null) {
-                    Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
-                    return;
-                }
-                if (AAppPackageNmae.equals("com.syu.camera360")) {
-                    AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
-                }
-                AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            SystemProperties.set("sys.lsec.force_pip", "true");
-                        } catch (Throwable e) {
-                        }
-                        
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-
-                        // Các extra bổ trợ - gửi rect đã lưu
-                        WindowUtil.intent.putExtra("force_pip", true);
-                        WindowUtil.intent.putExtra("pip_mode", 1);
-
-                        SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-                        String savedRect = sp.getString(PREFS_RECT, "");
-                        if (!savedRect.isEmpty()) {
-                            WindowUtil.intent.putExtra("pip_rect", savedRect);
-                            WindowUtil.intent.putExtra("rect", savedRect);
-                        }
-
-//                        LauncherApplication.sApp.startActivity(WindowUtil.intent);
-                        AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
-                        Log.d("LZP", "WindowUtil --- startActivity executed");
-                        visible = true;
-                    }
-                }, delayMillis);
-                Log.d("LZP", "WindowUtil --- Open window scheduled");
-                delayMillis = 0;
+            // Loại bỏ Utils.topApp() để đảm bảo Map luôn được kích hoạt khi Launcher gọi
+            if (AAppPackageNmae.equals(FytPackage.fourcamera2Action)) {
+                Log.d("LZP", "fourcamera2Action");
                 return;
             }
-            Log.d("LZP", "WindowUtil --- Open window filter");
+            intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
+            if (intent == null) {
+                Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
+                return;
+            }
+            
+            // Đảm bảo trạng thái visible được reset để lệnh được thực thi
+            visible = false;
+
+            if (AAppPackageNmae.equals("com.syu.camera360")) {
+                AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
+            }
+            AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        SystemProperties.set("sys.lsec.force_pip", "true");
+                    } catch (Throwable e) {
+                    }
+                    
+                    WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                    WindowUtil.intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+
+                    // Các extra bổ trợ - gửi rect đã lưu
+                    WindowUtil.intent.putExtra("force_pip", true);
+                    WindowUtil.intent.putExtra("pip_mode", 1);
+
+                    SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+                    String savedRect = sp.getString(PREFS_RECT, "");
+                    if (!savedRect.isEmpty()) {
+                        WindowUtil.intent.putExtra("pip_rect", savedRect);
+                        WindowUtil.intent.putExtra("rect", savedRect);
+                    }
+
+                    try {
+                        AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
+                        Log.d("LZP", "WindowUtil --- startActivity executed successfully");
+                        visible = true;
+                    } catch (Exception e) {
+                        Log.e("LZP", "StartActivity failed", e);
+                        visible = false;
+                    }
+                }
+            }, delayMillis);
+            Log.d("LZP", "WindowUtil --- Open window scheduled");
+            delayMillis = 0;
         } catch (Exception e) {
             e.printStackTrace();
         }

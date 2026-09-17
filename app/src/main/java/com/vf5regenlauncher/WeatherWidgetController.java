@@ -38,6 +38,42 @@ public class WeatherWidgetController {
         if (container != null) {
             container.setOnClickListener(v -> openWeatherApp());
         }
+        
+        // Tự động thử lấy vị trí hiện tại nếu ROM chưa cung cấp
+        updateLocationFallback();
+    }
+
+    private void updateLocationFallback() {
+        try {
+            android.location.LocationManager lm = (android.location.LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
+            if (lm != null) {
+                // Ưu tiên GPS, nếu không có lấy Network
+                android.location.Location loc = null;
+                if (androidx.core.content.ContextCompat.checkSelfPermission(activity, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    loc = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER);
+                    if (loc == null) loc = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER);
+                }
+                
+                if (loc != null) {
+                    android.location.Geocoder geocoder = new android.location.Geocoder(activity, java.util.Locale.getDefault());
+                    java.util.List<android.location.Address> addresses = geocoder.getFromLocation(loc.getLatitude(), loc.getLongitude(), 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        String cityName = addresses.get(0).getLocality();
+                        if (cityName == null) cityName = addresses.get(0).getAdminArea();
+                        if (cityName != null && !cityName.isEmpty()) {
+                            final String detectedCity = cityName;
+                            activity.runOnUiThread(() -> {
+                                if (tvCity != null && (tvCity.getText().toString().equals("Hà Nội") || tvCity.getText().toString().isEmpty())) {
+                                    tvCity.setText(detectedCity);
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            Log.e(TAG, "Location fallback failed", e);
+        }
     }
 
     private void openWeatherApp() {

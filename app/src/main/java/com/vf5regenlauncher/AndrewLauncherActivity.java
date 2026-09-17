@@ -265,10 +265,12 @@ public class AndrewLauncherActivity extends AppCompatActivity {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    Log.d("Launcher", "onResume-----> startMapPip after 250ms");
+                    Log.d("Launcher", "onResume-----> startMapPip after 500ms");
+                    // Force reset visible state trước khi mở để tránh bị kẹt logic
+                    com.vf5regenlauncher.util.WindowUtil.visible = false;
                     com.vf5regenlauncher.util.WindowUtil.startMapPip();
                 }
-            }, 250);
+            }, 500);
         } else {
             com.vf5regenlauncher.util.WindowUtil.removePip(pipViews);
         }
