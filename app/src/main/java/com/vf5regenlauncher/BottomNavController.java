@@ -1,13 +1,23 @@
 package com.vf5regenlauncher;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class BottomNavController implements CanbusConnector.CanbusDataListener {
     private final Activity activity;
@@ -15,6 +25,9 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
     private int currentFanSpeed = 1;
     private int currentTemp = 230;
     private boolean isAcOn = false;
+
+    private static final String PREF_CAMERA_PKG = "camera_package_name";
+    private static final String DEFAULT_CAMERA_PKG = "com.syu.camera360";
 
     // Các mã ID dựa trên tài liệu tham khảo RZC VinFast
     private static final int AIR_AC_TOGGLE = 11; // Chuyển sang 11 theo trí nhớ của bạn
@@ -37,6 +50,7 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
 
     private void init() {
         setupNavButtons();
+        setupCameraBtn();
         setupAirControls();
         updateFanDisplay();
         updateTempDisplay();
@@ -158,5 +172,63 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
         View up = activity.findViewById(R.id.btn_fan_up);
         if (down != null) down.setVisibility(currentFanSpeed <= 0 ? View.INVISIBLE : View.VISIBLE);
         if (up != null) up.setVisibility(currentFanSpeed >= 8 ? View.INVISIBLE : View.VISIBLE);
+    }
+
+    private void setupCameraBtn() {
+        View btnCamera = activity.findViewById(R.id.btn_nav_camera);
+        if (btnCamera != null) {
+            btnCamera.setOnClickListener(v -> launchCameraApp());
+            btnCamera.setOnLongClickListener(v -> {
+                showAppPickerForCamera();
+                return true;
+            });
+        }
+    }
+
+    private void launchCameraApp() {
+        String pkg = activity.getSharedPreferences("launcher_prefs", Activity.MODE_PRIVATE)
+                .getString(PREF_CAMERA_PKG, DEFAULT_CAMERA_PKG);
+        try {
+            Intent intent = activity.getPackageManager().getLaunchIntentForPackage(pkg);
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } else {
+                Toast.makeText(activity, "Không tìm thấy: " + pkg, Toast.LENGTH_SHORT).show();
+                showAppPickerForCamera();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showAppPickerForCamera() {
+        final PackageManager pm = activity.getPackageManager();
+        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> pkgAppsList = pm.queryIntentActivities(mainIntent, 0);
+
+        Collections.sort(pkgAppsList, (o1, o2) ->
+                o1.loadLabel(pm).toString().compareToIgnoreCase(o2.loadLabel(pm).toString()));
+
+        final List<String> appNames = new ArrayList<>();
+        final List<String> packageNames = new ArrayList<>();
+        for (ResolveInfo ri : pkgAppsList) {
+            appNames.add(ri.loadLabel(pm).toString());
+            packageNames.add(ri.activityInfo.packageName);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle("Chọn ứng dụng Camera");
+        builder.setItems(appNames.toArray(new CharSequence[0]), (dialog, which) -> {
+            String selectedPkg = packageNames.get(which);
+            activity.getSharedPreferences("launcher_prefs", Activity.MODE_PRIVATE)
+                    .edit()
+                    .putString(PREF_CAMERA_PKG, selectedPkg)
+                    .apply();
+            Toast.makeText(activity, "Đã lưu Camera: " + selectedPkg, Toast.LENGTH_SHORT).show();
+            launchCameraApp();
+        });
+        builder.show();
     }
 }

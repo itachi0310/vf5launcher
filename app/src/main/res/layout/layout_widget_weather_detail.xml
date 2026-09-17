@@ -72,13 +72,13 @@
             android:fontFamily="sans-serif-thin"
             android:textStyle="normal" />
 
-        <!-- Ngày tháng hiển thị bên dưới (Định dạng: Thứ.Năm/Tháng/Ngày giống hình mẫu) -->
+        <!-- Ngày tháng hiển thị bên dưới (Định dạng: Thứ ngày/tháng/năm) -->
         <TextClock
             android:id="@+id/tc_weather_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:format12Hour="EEE.yyyy/MM/dd"
-            android:format24Hour="EEE.yyyy/MM/dd"
+            android:format12Hour="EEEE dd/MM/yyyy"
+            android:format24Hour="EEEE dd/MM/yyyy"
             android:textColor="#A0AABF"
             android:textSize="13sp"
             android:layout_marginTop="4dp" />

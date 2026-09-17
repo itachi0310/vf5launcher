@@ -36,12 +36,35 @@
             android:layout_height="match_parent"
             android:adjustViewBounds="true"
             android:src="@drawable/ic_apps"
-            android:paddingVertical="30dp"
-            android:paddingHorizontal="20dp"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="25dp"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Apps" />
+    </LinearLayout>
+
+    <!-- Group PHẢI: Camera360 -->
+    <LinearLayout
+        android:id="@+id/group_nav_right"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/btn_nav_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:src="@drawable/ic_camera_360"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="25dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Camera360" />
     </LinearLayout>
 
     <!-- Group CHÍNH GIỮA: Fan - A/C - Temp -->
@@ -65,7 +88,7 @@
                 android:layout_height="match_parent"
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_left"
-                android:paddingVertical="35dp"
+                android:paddingVertical="25dp"
                 android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
@@ -91,7 +114,7 @@
                 android:layout_height="match_parent"
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_right"
-                android:paddingVertical="35dp"
+                android:paddingVertical="25dp"
                 android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
@@ -134,7 +157,7 @@
                 android:layout_height="match_parent"
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_left"
-                android:paddingVertical="35dp"
+                android:paddingVertical="25dp"
                 android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"
@@ -158,7 +181,7 @@
                 android:layout_height="match_parent"
                 android:adjustViewBounds="true"
                 android:src="@drawable/ic_chevron_right"
-                android:paddingVertical="35dp"
+                android:paddingVertical="25dp"
                 android:rotation="-90"
                 android:clickable="true"
                 android:focusable="true"

@@ -4,17 +4,17 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="12dp">
+    android:padding="14dp">
 
     <!-- 1. Ảnh Album Art ở giữa trên cùng (Hình vuông bo góc) giống Hình số 1 -->
     <ImageView
         android:id="@+id/iv_music_album"
-        android:layout_width="54dp"
-        android:layout_height="54dp"
+        android:layout_width="65dp"
+        android:layout_height="65dp"
         android:src="@android:drawable/ic_media_play"
         android:background="#222D42"
-        android:padding="10dp"
-        android:layout_marginBottom="8dp"
+        android:padding="12dp"
+        android:layout_marginBottom="10dp"
         android:contentDescription="Music Album Cover" />
 
     <!-- 2. Tên Bài Hát (Tiêu đề chính) -->
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:text="Chưa phát nhạc"
         android:textColor="#FFFFFF"
-        android:textSize="15sp"
+        android:textSize="18sp"
         android:textStyle="bold"
         android:singleLine="true"
         android:ellipsize="marquee"
@@ -37,10 +37,10 @@
         android:layout_height="wrap_content"
         android:text="Kết nối Bluetooth/Media"
         android:textColor="#A0AABF"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:singleLine="true"
         android:layout_marginTop="2dp"
-        android:layout_marginBottom="10dp" />
+        android:layout_marginBottom="12dp" />
 
     <!-- 4. Thanh gạch ngang mỏng chia cụm nút bấm giống Hình số 1 -->
     <View
@@ -49,7 +49,7 @@
         android:background="#25FFFFFF"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="14dp" />
 
     <!-- 5. Cụm 3 nút điều khiển Media nằm ngang, căn giữa dưới đáy giống Hình số 1 -->
     <LinearLayout
@@ -61,8 +61,8 @@
         <!-- Nút Previous -->
         <ImageButton
             android:id="@+id/btn_music_prev"
-            android:layout_width="44dp"
-            android:layout_height="36dp"
+            android:layout_width="53dp"
+            android:layout_height="43dp"
             android:background="@android:color/transparent"
             android:src="@android:drawable/ic_media_previous"
             android:scaleType="centerInside"
@@ -71,20 +71,20 @@
         <!-- Nút Play / Pause -->
         <ImageButton
             android:id="@+id/btn_music_toggle"
-            android:layout_width="54dp"
-            android:layout_height="36dp"
+            android:layout_width="65dp"
+            android:layout_height="43dp"
             android:background="@android:color/transparent"
             android:src="@android:drawable/ic_media_play"
             android:scaleType="centerInside"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
             android:contentDescription="Play or Pause" />
 
         <!-- Nút Next -->
         <ImageButton
             android:id="@+id/btn_music_next"
-            android:layout_width="44dp"
-            android:layout_height="36dp"
+            android:layout_width="53dp"
+            android:layout_height="43dp"
             android:background="@android:color/transparent"
             android:src="@android:drawable/ic_media_next"
             android:scaleType="centerInside"
