@@ -34,8 +34,8 @@ public class WeatherWidgetController {
             container.setOnClickListener(v -> openWeatherApp());
         }
 
-        weatherManager.setCallback((temp, state) -> {
-            updateUI(Math.round(temp) + "°C", state.name());
+        weatherManager.setCallback((temp, state, city) -> {
+            updateUI(Math.round(temp) + "°C", state.name(), city);
             if (ivIcon != null) {
                 activity.runOnUiThread(() -> ivIcon.setImageResource(WeatherCodeMapper.getIconRes(state)));
             }
@@ -64,12 +64,13 @@ public class WeatherWidgetController {
         isRegistered = false;
     }
 
-    private void updateUI(String temp, String condition) {
+    private void updateUI(String temp, String condition, String city) {
         if (activity == null) return;
         activity.runOnUiThread(() -> {
             if (tvTemp != null) tvTemp.setText(temp);
             if (tvStatus != null) tvStatus.setText(condition);
-            Log.d(TAG, "Updated Weather UI -> Temp: " + temp + ", Status: " + condition);
+            if (tvCity != null) tvCity.setText(city);
+            Log.d(TAG, "Updated Weather UI -> Temp: " + temp + ", Status: " + condition + ", City: " + city);
         });
     }
 }

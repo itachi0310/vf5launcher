@@ -1,6 +1,12 @@
 package com.vf5regenlauncher;
 
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,6 +17,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.vf5regenlauncher.util.WindowUtil;
@@ -50,7 +57,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
         checkOverlayPermission();
         checkWriteSettingsPermission();
-        requestInternetPermissions();
+        requestAppPermissions();
 
         canbusConnector = CanbusConnector.getInstance(this);
         
@@ -75,7 +82,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         WindowUtil.initDefaultApp();
         
         try {
-            registerReceiver(pipDieReceiver, new android.content.IntentFilter("com.lsec.pipdie"));
+            registerReceiver(pipDieReceiver, new IntentFilter("com.lsec.pipdie"));
         } catch (Throwable e) {
             Log.e("Launcher", "Failed to register pipDieReceiver", e);
         }
@@ -87,8 +94,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 if (appEmbedManager != null) {
                     appEmbedManager.updatePipRect();
                 }
-                com.vf5regenlauncher.util.WindowUtil.visible = false; // Reset state để openPip không bị filter
-                com.vf5regenlauncher.util.WindowUtil.startMapPip();
+                WindowUtil.visible = false; // Reset state để openPip không bị filter
+                WindowUtil.startMapPip();
             }
         }, 1500);
         
@@ -135,14 +142,23 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         }
     };
 
-    private void requestInternetPermissions() {
+    private void requestAppPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(android.Manifest.permission.INTERNET) 
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{
-                    android.Manifest.permission.INTERNET,
-                    android.Manifest.permission.ACCESS_NETWORK_STATE
-                }, 1);
+            String[] permissions = {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            };
+            
+            boolean allGranted = true;
+            for (String p : permissions) {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            
+            if (!allGranted) {
+                requestPermissions(permissions, 1);
             }
         }
     }
@@ -195,7 +211,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         try {
             // Thử mở trực tiếp Activity Launcher của SYU (Cách này rất hiệu quả nếu Broadcast bị chặn)
             Intent syuLauncher = new Intent();
-            syuLauncher.setComponent(new android.content.ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
+            syuLauncher.setComponent(new ComponentName("com.syu.canbus", "com.syu.canbus.LauncherActivity"));
             syuLauncher.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
                 startActivity(syuLauncher);
@@ -225,17 +241,17 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         return this.mState == State.APPS_CUSTOMIZE || this.mOnResumeState == State.APPS_CUSTOMIZE;
     }
 
-    private final android.content.BroadcastReceiver pipDieReceiver = new android.content.BroadcastReceiver() {
+    private final BroadcastReceiver pipDieReceiver = new BroadcastReceiver() {
         @Override
-        public void onReceive(android.content.Context context, Intent intent) {
+        public void onReceive(Context context, Intent intent) {
             if (intent != null && "com.lsec.pipdie".equals(intent.getAction())) {
                 Log.d("Launcher", "Received com.lsec.pipdie broadcast - restoring Map PiP");
-                com.vf5regenlauncher.util.WindowUtil.visible = false;
+                WindowUtil.visible = false;
                 if (!isAllAppsVisible()) {
                     if (appEmbedManager != null) {
                         appEmbedManager.updatePipRect();
                     }
-                    com.vf5regenlauncher.util.WindowUtil.startMapPip();
+                    WindowUtil.startMapPip();
                 }
             }
         }
@@ -245,8 +261,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Log.d("Launcher", "onStart-----> reset/hide PiP");
-        com.vf5regenlauncher.util.WindowUtil.visible = false;
-        com.vf5regenlauncher.util.WindowUtil.removePip(null);
+        WindowUtil.visible = false;
+        WindowUtil.removePip(null);
     }
 
     @Override
@@ -267,12 +283,12 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 public void run() {
                     Log.d("Launcher", "onResume-----> startMapPip after 500ms");
                     // Force reset visible state trước khi mở để tránh bị kẹt logic
-                    com.vf5regenlauncher.util.WindowUtil.visible = false;
-                    com.vf5regenlauncher.util.WindowUtil.startMapPip();
+                    WindowUtil.visible = false;
+                    WindowUtil.startMapPip();
                 }
             }, 500);
         } else {
-            com.vf5regenlauncher.util.WindowUtil.removePip(pipViews);
+            WindowUtil.removePip(pipViews);
         }
     }
 
@@ -310,6 +326,23 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // Không làm gì để tránh thoát Launcher bằng phím Back
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            boolean granted = false;
+            for (int result : grantResults) {
+                if (result == PackageManager.PERMISSION_GRANTED) {
+                    granted = true;
+                    break;
+                }
+            }
+            if (granted && weatherWidgetController != null) {
+                weatherWidgetController.register();
+            }
+        }
     }
 
     private enum State {

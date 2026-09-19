@@ -53,12 +53,39 @@ public class WindowUtil {
         intent = new Intent();
         visible = false;
         removePip(null);
-        AppPackageNmae = SystemProperties.get("persist.launcher.packagename", "");
-        if (AppPackageNmae.isEmpty()) {
-            SystemProperties.set("persist.launcher.packagename", FytPackage.googlemapAction);
-            AppPackageNmae = SystemProperties.get("persist.launcher.packagename", "");
+
+        // Danh sách các key cấu hình navi phổ biến trên màn hình Android Auto
+        String[] naviKeys = {
+            "persist.syu.navi.packagename", // Key chuẩn của SYU/FYT
+            "persist.launcher.packagename", // Key tùy chỉnh của launcher cũ
+            "persist.sys.fyt.navi_package"  // Một số bản mod khác
+        };
+
+        AppPackageNmae = "";
+        for (String key : naviKeys) {
+            String val = SystemProperties.get(key, "");
+            if (!val.isEmpty() && checkAppInstalled(val)) {
+                AppPackageNmae = val;
+                Log.d(TAG, "Found valid navi package from " + key + ": " + AppPackageNmae);
+                break;
+            }
         }
-        Log.d("AppPackageNmae", "AppPackageNmae:" + AppPackageNmae);
+
+        // Nếu vẫn không tìm thấy, dùng Google Maps làm mặc định (kiểm tra cả bản cũ và mới)
+        if (AppPackageNmae.isEmpty()) {
+            if (checkAppInstalled(FytPackage.mapsAction)) {
+                AppPackageNmae = FytPackage.mapsAction;
+            } else if (checkAppInstalled("com.google.android.maps")) {
+                AppPackageNmae = "com.google.android.maps";
+            } else {
+                // Fallback cuối cùng nếu không có gì cả
+                AppPackageNmae = FytPackage.mapsAction;
+            }
+            // Lưu lại vào persist.launcher.packagename để các lần sau nhanh hơn
+            SystemProperties.set("persist.launcher.packagename", AppPackageNmae);
+        }
+        
+        Log.d("AppPackageNmae", "AppPackageNmae final: " + AppPackageNmae);
     }
 
     public static void startMapPip() {
