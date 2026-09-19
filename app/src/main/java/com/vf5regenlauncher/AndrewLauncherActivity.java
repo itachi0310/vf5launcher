@@ -282,8 +282,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     Log.d("Launcher", "onResume-----> startMapPip after 500ms");
-                    // Force reset visible state trước khi mở để tránh bị kẹt logic
-                    WindowUtil.visible = false;
+                    // Theo launcher 34: Không reset visible ở đây, để startMapPip tự quyết định
                     WindowUtil.startMapPip();
                 }
             }, 500);
