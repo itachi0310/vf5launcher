@@ -2,7 +2,7 @@ package com.vf5regenlauncher;
 
 import android.content.Intent;
 import android.util.Log;
-import android.widget.ImageView;
+import android.view.View;
 import android.widget.TextView;
 
 public class WeatherWidgetController {
@@ -12,7 +12,7 @@ public class WeatherWidgetController {
     private TextView tvCity;
     private TextView tvStatus;
     private TextView tvTemp;
-    private ImageView ivIcon;
+    private TextView tvEmoji;
 
     private boolean isRegistered = false;
     private WeatherManager weatherManager;
@@ -27,18 +27,15 @@ public class WeatherWidgetController {
         tvCity = activity.findViewById(R.id.tv_weather_city);
         tvStatus = activity.findViewById(R.id.tv_weather_status);
         tvTemp = activity.findViewById(R.id.tv_weather_temp);
-        ivIcon = activity.findViewById(R.id.iv_weather_icon);
+        tvEmoji = activity.findViewById(R.id.tv_weather_icon_emoji);
         
-        android.view.View container = activity.findViewById(R.id.container_weather_widget);
+        View container = activity.findViewById(R.id.container_weather_widget);
         if (container != null) {
             container.setOnClickListener(v -> openWeatherApp());
         }
 
         weatherManager.setCallback((temp, state, city) -> {
-            updateUI(Math.round(temp) + "°C", state.name(), city);
-            if (ivIcon != null) {
-                activity.runOnUiThread(() -> ivIcon.setImageResource(WeatherCodeMapper.getIconRes(state)));
-            }
+            updateUI(Math.round(temp) + "°C", WeatherCodeMapper.getDescription(state), city, WeatherCodeMapper.getEmoji(state));
         });
     }
 
@@ -64,13 +61,14 @@ public class WeatherWidgetController {
         isRegistered = false;
     }
 
-    private void updateUI(String temp, String condition, String city) {
+    private void updateUI(String temp, String condition, String city, String emoji) {
         if (activity == null) return;
         activity.runOnUiThread(() -> {
             if (tvTemp != null) tvTemp.setText(temp);
             if (tvStatus != null) tvStatus.setText(condition);
             if (tvCity != null) tvCity.setText(city);
-            Log.d(TAG, "Updated Weather UI -> Temp: " + temp + ", Status: " + condition + ", City: " + city);
+            if (tvEmoji != null) tvEmoji.setText(emoji);
+            Log.d(TAG, "Updated Weather UI -> Temp: " + temp + ", Status: " + condition + ", City: " + city + ", Emoji: " + emoji);
         });
     }
 }

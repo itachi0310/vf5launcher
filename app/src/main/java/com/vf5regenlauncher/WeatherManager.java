@@ -101,30 +101,101 @@ public class WeatherManager {
     }
 
     private void updateCityName(double lat, double lon) {
+        if (lat == 0 && lon == 0) return;
+        Log.d(TAG, "Starting Geocoder for: " + lat + ", " + lon);
+        
         new Thread(() -> {
+            boolean success = false;
             try {
-                Geocoder geocoder = new Geocoder(context, new Locale("vi", "VN"));
-                List<Address> addresses = geocoder.getFromLocation(lat, lon, 1);
-                if (addresses != null && !addresses.isEmpty()) {
-                    Address address = addresses.get(0);
-                    // Ưu tiên lấy tên thành phố/quận huyện
-                    String city = address.getLocality();
-                    if (city == null) city = address.getSubAdminArea();
-                    if (city == null) city = address.getAdminArea();
+                if (Geocoder.isPresent()) {
+                    Geocoder geocoder = new Geocoder(context, new Locale("vi", "VN"));
+                    List<Address> addresses = geocoder.getFromLocation(lat, lon, 1);
                     
-                    if (city != null) {
-                        lastCity = city;
-                        saveCacheCity(city);
-                        if (callback != null) {
-                            // Cập nhật lại UI với tên thành phố mới (giữ nguyên temp/state cũ)
-                            callback.onWeatherUpdated(getCachedTemp(), getCachedState(), lastCity);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        Address address = addresses.get(0);
+                        String city = extractCityFromAddress(address);
+                        if (city != null) {
+                            updateLastCity(city);
+                            success = true;
                         }
                     }
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Reverse geocoding failed", e);
+                Log.e(TAG, "System Geocoder failed: " + e.getMessage());
+            }
+
+            // Fallback to Network Reverse Geocoding if System Geocoder fails
+            if (!success) {
+                Log.d(TAG, "System Geocoder failed, trying Network Fallback (Nominatim)");
+                try {
+                    String city = fetchCityNameFromNetwork(lat, lon);
+                    if (city != null) {
+                        updateLastCity(city);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Network Geocoder failed: " + e.getMessage());
+                }
             }
         }).start();
+    }
+
+    private String extractCityFromAddress(Address address) {
+        String city = address.getLocality();
+        if (city == null || city.isEmpty()) city = address.getSubAdminArea();
+        if (city == null || city.isEmpty()) city = address.getAdminArea();
+        if (city == null || city.isEmpty()) city = address.getFeatureName();
+        
+        if (city != null) {
+            return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "");
+        }
+        return null;
+    }
+
+    private void updateLastCity(String city) {
+        lastCity = city;
+        Log.d(TAG, "City name identified: " + lastCity);
+        saveCacheCity(lastCity);
+        if (callback != null) {
+            callback.onWeatherUpdated(getCachedTemp(), getCachedState(), lastCity);
+        }
+    }
+
+    private String fetchCityNameFromNetwork(double lat, double lon) {
+        try {
+            // Using Nominatim (OpenStreetMap) - Note: In production you should use a proper key/service
+            String urlStr = String.format(Locale.US, 
+                "https://nominatim.openstreetmap.org/reverse?format=json&lat=%.6f&lon=%.6f&zoom=10&addressdetails=1",
+                lat, lon);
+            
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent", "VF5Launcher/1.0"); // Nominatim requires a user agent
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder result = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) result.append(line);
+            reader.close();
+
+            JSONObject json = new JSONObject(result.toString());
+            if (json.has("address")) {
+                JSONObject address = json.getJSONObject("address");
+                String city = null;
+                if (address.has("city")) city = address.getString("city");
+                else if (address.has("town")) city = address.getString("town");
+                else if (address.has("district")) city = address.getString("district");
+                else if (address.has("state")) city = address.getString("state");
+                
+                if (city != null) {
+                    return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Network reverse geocoding error", e);
+        }
+        return null;
     }
 
     private final LocationListener locationListener = new LocationListener() {

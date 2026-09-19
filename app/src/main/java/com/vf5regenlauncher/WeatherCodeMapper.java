@@ -43,22 +43,45 @@ public class WeatherCodeMapper {
         }
     }
 
-    public static int getIconRes(WeatherState state) {
+    public static String getEmoji(WeatherState state) {
         switch (state) {
             case CLEAR:
-                return android.R.drawable.ic_menu_day; // ☀️ placeholder
+                return "☀️";
             case CLOUDY:
-                return android.R.drawable.ic_menu_mylocation; // ☁️ placeholder
+                return "☁️";
             case RAIN:
-                return android.R.drawable.ic_menu_report_image; // 🌧️ placeholder
+                return "🌧️";
             case STORM:
-                return android.R.drawable.ic_delete; // ⛈️ placeholder
+                return "⛈️";
             case FOG:
-                return android.R.drawable.ic_menu_view; // 🌫️ placeholder
+                return "🌫️";
             case SNOW:
-                return android.R.drawable.ic_menu_gallery; // ❄️ placeholder
+                return "❄️";
             default:
-                return android.R.drawable.ic_menu_help;
+                return "❓";
         }
+    }
+
+    public static String getDescription(WeatherState state) {
+        switch (state) {
+            case CLEAR:
+                return "Trời quang";
+            case CLOUDY:
+                return "Nhiều mây";
+            case RAIN:
+                return "Có mưa";
+            case STORM:
+                return "Có dông";
+            case FOG:
+                return "Có sương mù";
+            case SNOW:
+                return "Có tuyết";
+            default:
+                return "Không xác định";
+        }
+    }
+
+    public static int getIconRes(WeatherState state) {
+        return 0; // No longer used, but kept for compatibility if needed
     }
 }

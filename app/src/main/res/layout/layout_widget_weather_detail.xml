@@ -4,22 +4,24 @@
     android:layout_height="match_parent"
     android:padding="16dp">
 
-    <!-- Phía bên TRÁI TRÊN: Dữ liệu thời tiết -->
+    <!-- Phía bên TRÁI TRÊN: Tên vị trí và Trạng thái -->
     <LinearLayout
         android:id="@+id/weather_left_area"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true">
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/tv_weather_temp"
+        android:layout_marginRight="8dp">
 
         <TextView
-            android:id="@+id/tv_weather_temp"
+            android:id="@+id/tv_weather_city"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="29°C"
+            android:text="Đang xác định..."
             android:textColor="#FFFFFF"
-            android:textSize="26sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -29,11 +31,14 @@
             android:gravity="center_vertical"
             android:layout_marginTop="4dp">
 
-            <ImageView
-                android:id="@+id/iv_weather_icon"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_report_image"
+            <TextView
+                android:id="@+id/tv_weather_icon_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☀️"
+                android:textSize="20sp"
+                android:layout_marginRight="4dp"
+                android:gravity="center"
                 android:contentDescription="Weather Status Icon" />
 
             <TextView
@@ -43,20 +48,22 @@
                 android:text="Nhiều mây"
                 android:textColor="#A0AABF"
                 android:textSize="12sp"
-                android:layout_marginLeft="6dp"
+                android:layout_marginLeft="2dp"
                 android:visibility="visible" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/tv_weather_city"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Đang xác định..."
-            android:textColor="#A0AABF"
-            android:textSize="12sp"
-            android:layout_marginTop="2dp"
-            android:visibility="visible" />
     </LinearLayout>
+
+    <!-- Nhiệt độ dời qua GÓC TRÊN BÊN PHẢI -->
+    <TextView
+        android:id="@+id/tv_weather_temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:text="29°C"
+        android:textColor="#FFFFFF"
+        android:textSize="26sp"
+        android:textStyle="bold" />
 
     <!-- Phía bên PHẢI DƯỚI: Đồng hồ lớn tự động cập nhật + Ngày tháng -->
     <LinearLayout
