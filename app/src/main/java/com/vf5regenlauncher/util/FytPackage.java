@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -104,41 +105,65 @@ public class FytPackage {
         LOADED_LIST.add(steerACTION);
     }
 
+
     public static Intent getIntent(Context context, String pkg) {
-        if (pkg == null || pkg.isEmpty()) return null;
-
-        PackageManager packageManager = context.getPackageManager();
-        
-        // Trường hợp đặc biệt cho Settings hệ thống
+        Intent mainIntent;
+        Intent intent;
         if (pkg.equals(sysSetAction)) {
-            Intent intent = new Intent("android.settings.SETTINGS");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            return intent;
+            intent = new Intent("android.settings.SETTINGS");
+            mainIntent = new Intent("android.settings.SETTINGS", (Uri) null);
+        } else {
+            mainIntent = new Intent("android.intent.action.MAIN", (Uri) null);
+            intent = new Intent("android.intent.action.MAIN");
         }
-
-        // Tìm Intent để khởi chạy ứng dụng (Launcher Intent)
-        Intent intent = packageManager.getLaunchIntentForPackage(pkg);
-        
-        if (intent == null) {
-            // Nếu getLaunchIntentForPackage thất bại, thử tìm thủ công qua ACTION_MAIN
-            Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-            mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-            mainIntent.setPackage(pkg);
-            
-            List<ResolveInfo> apps = packageManager.queryIntentActivities(mainIntent, 0);
-            if (apps != null && !apps.isEmpty()) {
-                ResolveInfo res = apps.get(0);
-                intent = new Intent(Intent.ACTION_MAIN);
+        mainIntent.setPackage(pkg);
+        PackageManager packageManager = context.getPackageManager();
+        List<ResolveInfo> apps = packageManager.queryIntentActivities(mainIntent, 0);
+        for (ResolveInfo res : apps) {
+            if (res.activityInfo.packageName.equals(pkg)) {
+                intent = new Intent("android.intent.action.MAIN");
+                intent.setFlags(270532608);
                 intent.setComponent(new ComponentName(res.activityInfo.packageName, res.activityInfo.name));
             }
         }
-
-        if (intent != null) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            // Flag đặc trưng của hệ thống FYT để hỗ trợ PIP
-            intent.addFlags(0x10200000); // 270532608 trong mã cũ của bạn
-        }
-
         return intent;
     }
+
+//    public static Intent getIntent(Context context, String pkg) {
+//        if (pkg == null || pkg.isEmpty()) return null;
+//
+//        PackageManager packageManager = context.getPackageManager();
+//
+//        // Trường hợp đặc biệt cho Settings hệ thống
+//        if (pkg.equals(sysSetAction)) {
+//            Intent intent = new Intent("android.settings.SETTINGS");
+//            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            return intent;
+//        }
+//
+//        // Tìm Intent để khởi chạy ứng dụng (Launcher Intent)
+//        Intent intent = packageManager.getLaunchIntentForPackage(pkg);
+//
+//        if (intent == null) {
+//            // Nếu getLaunchIntentForPackage thất bại, thử tìm thủ công qua ACTION_MAIN
+//            Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+//            mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+//            mainIntent.setPackage(pkg);
+//
+//            List<ResolveInfo> apps = packageManager.queryIntentActivities(mainIntent, 0);
+//            if (apps != null && !apps.isEmpty()) {
+//                ResolveInfo res = apps.get(0);
+//                intent = new Intent(Intent.ACTION_MAIN);
+//                intent.setComponent(new ComponentName(res.activityInfo.packageName, res.activityInfo.name));
+//            }
+//        }
+//
+//        if (intent != null) {
+//            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            // Flag đặc trưng của hệ thống FYT để hỗ trợ PIP
+//            intent.addFlags(0x10200000); // 270532608 trong mã cũ của bạn
+//        }
+//
+//        return intent;
+//    }
 }
