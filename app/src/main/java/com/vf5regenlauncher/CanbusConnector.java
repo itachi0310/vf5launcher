@@ -174,7 +174,7 @@ public class CanbusConnector {
         @Override public void update(int code, int[] ints, float[] flts, String[] strs) {
             if (ints != null && ints.length > 0) {
                 // LOG CHI TIẾT ĐỂ DÒ PHÍM VÔ LĂNG VÀ TRẠNG THÁI XE
-                Log.d("SCAN_DATA", "Module 0 | Code: " + code + " | Value: " + ints[0]);
+//                Log.d("SCAN_DATA", "Module 0 | Code: " + code + " | Value: " + ints[0]);
                 notifyListeners(0, code, ints[0]);
             }
         }

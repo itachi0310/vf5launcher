@@ -28,7 +28,7 @@ public class WeatherManager {
     private static final String TAG = "WeatherManager";
     private static final String PREFS_NAME = "weather_cache";
     private static final long UPDATE_INTERVAL = 15 * 60 * 1000; // 15 mins
-    private static final float LOCATION_DISTANCE_THRESHOLD = 1000; // 1km
+    private static final float LOCATION_DISTANCE_THRESHOLD = 200; // 200m - Nhạy hơn khi di chuyển
 
     private final Context context;
     private final SharedPreferences prefs;
@@ -140,18 +140,20 @@ public class WeatherManager {
     }
 
     private String extractCityFromAddress(Address address) {
-        String city = address.getLocality();
-        if (city == null || city.isEmpty()) city = address.getSubAdminArea();
+        // Ưu tiên các cấp độ từ chi tiết đến bao quát
+        String city = address.getSubLocality(); // Phường/Xã
+        if (city == null || city.isEmpty()) city = address.getLocality(); // Quận/Huyện
+        if (city == null || city.isEmpty()) city = address.getSubAdminArea(); // Tỉnh/Thành phố
         if (city == null || city.isEmpty()) city = address.getAdminArea();
-        if (city == null || city.isEmpty()) city = address.getFeatureName();
         
         if (city != null) {
-            return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "");
+            return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "").replace("Quận ", "").replace("Huyện ", "");
         }
         return null;
     }
 
     private void updateLastCity(String city) {
+        if (city == null || city.isEmpty()) return;
         lastCity = city;
         Log.d(TAG, "City name identified: " + lastCity);
         saveCacheCity(lastCity);
@@ -162,14 +164,14 @@ public class WeatherManager {
 
     private String fetchCityNameFromNetwork(double lat, double lon) {
         try {
-            // Using Nominatim (OpenStreetMap) - Note: In production you should use a proper key/service
+            // Thêm accept-language=vi để lấy tên tiếng Việt
             String urlStr = String.format(Locale.US, 
-                "https://nominatim.openstreetmap.org/reverse?format=json&lat=%.6f&lon=%.6f&zoom=10&addressdetails=1",
+                "https://nominatim.openstreetmap.org/reverse?format=json&lat=%.6f&lon=%.6f&zoom=14&addressdetails=1&accept-language=vi",
                 lat, lon);
             
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("User-Agent", "VF5Launcher/1.0"); // Nominatim requires a user agent
+            conn.setRequestProperty("User-Agent", "VF5Launcher/1.0"); 
             conn.setConnectTimeout(5000);
             conn.setReadTimeout(5000);
             
@@ -181,15 +183,20 @@ public class WeatherManager {
 
             JSONObject json = new JSONObject(result.toString());
             if (json.has("address")) {
-                JSONObject address = json.getJSONObject("address");
+                JSONObject addr = json.getJSONObject("address");
                 String city = null;
-                if (address.has("city")) city = address.getString("city");
-                else if (address.has("town")) city = address.getString("town");
-                else if (address.has("district")) city = address.getString("district");
-                else if (address.has("state")) city = address.getString("state");
+                
+                // Cố gắng lấy cấp độ Phường/Quận/Thành phố
+                if (addr.has("suburb")) city = addr.getString("suburb");
+                else if (addr.has("neighbourhood")) city = addr.getString("neighbourhood");
+                else if (addr.has("quarter")) city = addr.getString("quarter");
+                else if (addr.has("town")) city = addr.getString("town");
+                else if (addr.has("city")) city = addr.getString("city");
+                else if (addr.has("district")) city = addr.getString("district");
+                else if (addr.has("state")) city = addr.getString("state");
                 
                 if (city != null) {
-                    return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "");
+                    return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "").replace("Quận ", "").replace("Huyện ", "");
                 }
             }
         } catch (Exception e) {
