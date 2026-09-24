@@ -4,6 +4,7 @@ import static com.vf5regenlauncher.AppEmbedManager.PREFS_RECT;
 
 
 import android.app.ActivityManager;
+import android.app.IActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -27,27 +28,29 @@ public class WindowUtil {
     public static boolean visible = true;
     public static int delayMillis = 0;
 
-    public static void setPinnedStackVisibleSafe(boolean visibleState) {
-        try {
-            Class<?> activityManagerNativeClass = Class.forName("android.app.ActivityManagerNative");
-            Method getDefaultMethod = activityManagerNativeClass.getMethod("getDefault");
-            Object am = getDefaultMethod.invoke(null);
-            Method setPinnedStackVisibleMethod = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
-            setPinnedStackVisibleMethod.invoke(am, visibleState);
-            Log.d(TAG, "setPinnedStackVisible via ActivityManagerNative success: " + visibleState);
-        } catch (Throwable e) {
-            try {
-                Class<?> activityManagerClass = Class.forName("android.app.ActivityManager");
-                Method getServiceMethod = activityManagerClass.getMethod("getService");
-                Object am = getServiceMethod.invoke(null);
-                Method setPinnedStackVisibleMethod = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
-                setPinnedStackVisibleMethod.invoke(am, visibleState);
-                Log.d(TAG, "setPinnedStackVisible via ActivityManager success: " + visibleState);
-            } catch (Throwable t) {
-                Log.e(TAG, "setPinnedStackVisible failed", t);
-            }
-        }
-    }
+    private static Object mActivityManager;
+
+//    public static void setPinnedStackVisibleSafe(boolean visibleState) {
+//        try {
+//            Class<?> activityManagerNativeClass = Class.forName("android.app.ActivityManagerNative");
+//            Method getDefaultMethod = activityManagerNativeClass.getMethod("getDefault");
+//            Object am = getDefaultMethod.invoke(null);
+//            Method setPinnedStackVisibleMethod = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+//            setPinnedStackVisibleMethod.invoke(am, visibleState);
+//            Log.d(TAG, "setPinnedStackVisible via ActivityManagerNative success: " + visibleState);
+//        } catch (Throwable e) {
+//            try {
+//                Class<?> activityManagerClass = Class.forName("android.app.ActivityManager");
+//                Method getServiceMethod = activityManagerClass.getMethod("getService");
+//                Object am = getServiceMethod.invoke(null);
+//                Method setPinnedStackVisibleMethod = am.getClass().getMethod("setPinnedStackVisible", boolean.class);
+//                setPinnedStackVisibleMethod.invoke(am, visibleState);
+//                Log.d(TAG, "setPinnedStackVisible via ActivityManager success: " + visibleState);
+//            } catch (Throwable t) {
+//                Log.e(TAG, "setPinnedStackVisible failed", t);
+//            }
+//        }
+//    }
 
     public static void initDefaultApp() {
         Log.d(TAG, "initDefaultApp");
@@ -95,6 +98,50 @@ public class WindowUtil {
         }
         
         Log.d("AppPackageNmae", "AppPackageNmae final: " + AppPackageNmae);
+    }
+
+    private static Object getIActivityManager() {
+        if (mActivityManager == null) {
+            try {
+                mActivityManager = ActivityManager.class
+                        .getMethod("getService")
+                        .invoke(null);
+                Log.d(TAG, "mActivityManager: " + mActivityManager);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return mActivityManager;
+    }
+
+    private static boolean isPinnedStackVisible() {
+        Object am = getIActivityManager();
+        Log.d(TAG, "IActivityManager am: " + am);
+        if (am != null) {
+            try {
+                Method method = Class.forName("android.app.IActivityManager")
+                            .getMethod("getPinnedStackVisible");
+
+                    return (Boolean) method.invoke(am);
+                } catch (Throwable t) {
+                    Log.e(TAG, "getPinnedStackVisible error: " + t.getMessage());
+                }
+        }
+        return false;
+
+    }
+
+    private static void setPinnedStackVisibleSafe(boolean visible) {
+        try {
+            Object service = getIActivityManager();
+            if (service != null) {
+                Method setPinnedStackVisible = Class.forName("android.app.IActivityManager")
+                        .getMethod("setPinnedStackVisible", boolean.class);
+                setPinnedStackVisible.invoke(service, visible);
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "setPinnedStackVisible error: " + t.getMessage());
+        }
     }
 
     public static void startMapPip() {
@@ -165,8 +212,20 @@ public class WindowUtil {
 
             if (Utils.topApp()) {
                 Log.d(TAG, "isMapStarted: " + isMapStarted);
+                Log.d(TAG, "isPinnedStackVisible: " + isPinnedStackVisible());
 
-                if (isMapStarted) {
+                intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
+                Log.d(TAG, "intent: " + intent);
+                if (intent == null) {
+                    Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
+                    return;
+                }
+
+                if (AAppPackageNmae.equals("com.syu.camera360")) {
+                    AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
+                }
+
+                if (!isPinnedStackVisible() || !isMapStarted) {
                     AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
@@ -197,15 +256,11 @@ public class WindowUtil {
                     }, delayMillis);
                     delayMillis = 0;
                 } else {
-                    intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
-                    if (intent == null) {
-                        Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
-                        return;
-                    }
-
-                    if (AAppPackageNmae.equals("com.syu.camera360")) {
-                        AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
-                    }
+//                    intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
+//                    if (intent == null) {
+//                        Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
+//                        return;
+//                    }
 
                     AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                         @Override
@@ -258,7 +313,7 @@ public class WindowUtil {
         Log.d("LZP", "removePip..");
         try {
             if (!AppPackageNmae.equals(FytPackage.fourcamera2Action)) {
-                if (visible || v == null) {
+                if (visible || v == null || isPinnedStackVisible()) {
                     AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
