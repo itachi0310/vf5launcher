@@ -39,6 +39,8 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         return instance;
     }
 
+    public static boolean isMainScreen = true;
+
     public AppEmbedManager getAppEmbedManager() {
         return appEmbedManager;
     }
@@ -191,6 +193,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
             // 1. Xử lý phím Mode (Vô lăng) - Mã 176 hoặc 209
             if (keyCode == 176 || keyCode == 209) {
+                isMainScreen = false;
                 if (dashboardController != null) {
                     dashboardController.toggleRegenMode();
                 }
@@ -207,6 +210,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     public void openSystemAppList() {
+        isMainScreen = false;
         Log.d("Launcher", "Opening System App List...");
         try {
             // Thử mở trực tiếp Activity Launcher của SYU (Cách này rất hiệu quả nếu Broadcast bị chặn)
@@ -247,6 +251,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
             if (intent != null && "com.lsec.pipdie".equals(intent.getAction())) {
                 Log.d("Launcher", "Received com.lsec.pipdie broadcast - restoring Map PiP");
                 WindowUtil.visible = false;
+                WindowUtil.isMapStarted = false;
                 if (!isAllAppsVisible()) {
                     if (appEmbedManager != null) {
                         appEmbedManager.updatePipRect();
@@ -261,6 +266,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Log.d("Launcher", "onStart-----> reset/hide PiP");
+        isMainScreen = true;
         WindowUtil.visible = false;
         WindowUtil.removePip(null);
     }
@@ -268,13 +274,14 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        isMainScreen = !isAllAppsVisible();
         if (mediaWidgetController != null) {
             mediaWidgetController.register();
         }
         if (weatherWidgetController != null) {
             weatherWidgetController.register();
         }
-        if (!isAllAppsVisible()) {
+        if (isMainScreen) {
             if (appEmbedManager != null) {
                 appEmbedManager.updatePipRect();
             }
@@ -282,7 +289,9 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     Log.d("Launcher", "onResume-----> startMapPip after 500ms");
-                    WindowUtil.startMapPip(null, true);
+                    if (isMainScreen) {
+                        WindowUtil.startMapPip(null, true);
+                    }
                 }
             }, 500);
         } else {
@@ -293,6 +302,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        isMainScreen = false;
         if (mediaWidgetController != null) {
             mediaWidgetController.unregister();
         }

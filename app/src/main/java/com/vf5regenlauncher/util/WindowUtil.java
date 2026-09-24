@@ -12,6 +12,7 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 import android.view.View;
 import java.lang.reflect.Method;
+import java.util.List;
 
 import com.vf5regenlauncher.AndrewLauncherActivity;
 import com.vf5regenlauncher.util.android.os.SystemProperties;
@@ -147,63 +148,102 @@ public class WindowUtil {
         openPip(AAppPackageNmae, true);
     }
 
+    public static boolean isMapStarted = false;
+
     public static void openPip(String AAppPackageNmae, boolean force) {
-        Log.d("startMapPip", "startMapPip:" + AAppPackageNmae + " (force=" + force + ", visible=" + visible + ")");
+        Log.d("startMapPip", "startMapPip:" + AAppPackageNmae + " (force=" + force + ", visible=" + visible + ", isMapStarted=" + isMapStarted + ", isMainScreen=" + AndrewLauncherActivity.isMainScreen + ")");
         try {
             if (AAppPackageNmae.equals(FytPackage.fourcamera2Action)) {
                 Log.d("LZP", "fourcamera2Action ignored");
                 return;
             }
 
-            // Theo launcher 34: Chỉ chạy nếu chưa visible, hoặc nếu yêu cầu force, 
-            // và quan trọng nhất là Launcher phải đang ở Foreground (topApp)
-            if ((!visible || force) && Utils.topApp()) {
-                intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
-                if (intent == null) {
-                    Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
-                    return;
-                }
+            if (!AndrewLauncherActivity.isMainScreen) {
+                Log.d("LZP", "WindowUtil --- Open window skipped (not on launcher main screen)");
+                return;
+            }
 
-                if (AAppPackageNmae.equals("com.syu.camera360")) {
-                    AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
-                }
+            if (Utils.topApp()) {
+                Log.d(TAG, "isMapStarted: " + isMapStarted);
 
-                AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            SystemProperties.set("sys.lsec.force_pip", "true");
-                        } catch (Throwable e) {
+                if (isMapStarted) {
+                    AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                SystemProperties.set("sys.lsec.force_pip", "true");
+                                SystemProperties.set("sys.lsec.pip_show", "1");
+                                SystemProperties.set("sys.lsec.pip_mode", "1");
+
+                                SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+                                String savedRect = sp.getString(PREFS_RECT, "");
+                                if (!savedRect.isEmpty()) {
+                                    Intent i = new Intent("com.syu.action.PIP_RECT");
+                                    i.putExtra("pip_rect", savedRect);
+                                    i.putExtra("rect", savedRect);
+                                    i.putExtra("show", true);
+                                    LauncherApplication.sApp.sendBroadcast(i);
+                                    LauncherApplication.sApp.sendBroadcast(new Intent("com.syu.pip.show").putExtra("show", true).putExtra("packagename", AAppPackageNmae));
+                                    LauncherApplication.sApp.sendBroadcast(new Intent("com.syu.pip.update").putExtra("rect", savedRect));
+                                }
+
+                                setPinnedStackVisibleSafe(true);
+                                visible = true;
+                                Log.d("LZP", "WindowUtil --- Map already started, restored PiP stack visibility without restarting activity");
+                            } catch (Exception e) {
+                                Log.e("LZP", "Failed to restore PiP for started map", e);
+                            }
                         }
-                        
-                        // Đặt lại flag 270532608 (0x10200000) đặc trưng của FYT/SYU ROM để ép chế độ nhúng PiP
-                        WindowUtil.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-
-                        // Các extra bổ trợ - gửi rect đã lưu
-                        WindowUtil.intent.putExtra("force_pip", true);
-                        WindowUtil.intent.putExtra("pip_mode", 1);
-
-                        SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-                        String savedRect = sp.getString(PREFS_RECT, "");
-                        if (!savedRect.isEmpty()) {
-                            WindowUtil.intent.putExtra("pip_rect", savedRect);
-                            WindowUtil.intent.putExtra("rect", savedRect);
-                        }
-
-                        try {
-                            AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
-                            Log.d("LZP", "WindowUtil --- startActivity executed successfully in PiP mode");
-                            visible = true;
-                        } catch (Exception e) {
-                            Log.e("LZP", "StartActivity failed", e);
-                            visible = false;
-                        }
+                    }, delayMillis);
+                    delayMillis = 0;
+                } else {
+                    intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
+                    if (intent == null) {
+                        Log.e("LZP", "Không tìm thấy Intent cho package: " + AAppPackageNmae);
+                        return;
                     }
-                }, delayMillis);
-                Log.d("LZP", "WindowUtil --- Open window scheduled");
-                delayMillis = 0;
+
+                    if (AAppPackageNmae.equals("com.syu.camera360")) {
+                        AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
+                    }
+
+                    AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                SystemProperties.set("sys.lsec.force_pip", "true");
+                            } catch (Throwable e) {
+                            }
+                            
+                            WindowUtil.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                            WindowUtil.intent.putExtra("force_pip", true);
+                            WindowUtil.intent.putExtra("pip_mode", 1);
+
+                            SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+                            String savedRect = sp.getString(PREFS_RECT, "");
+                            if (!savedRect.isEmpty()) {
+                                WindowUtil.intent.putExtra("pip_rect", savedRect);
+                                WindowUtil.intent.putExtra("rect", savedRect);
+                            }
+
+                            try {
+                                setPinnedStackVisibleSafe(true);
+                                AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
+                                isMapStarted = true;
+                                Log.d("LZP", "WindowUtil --- startActivity executed successfully in PiP mode");
+                                visible = true;
+                            } catch (Exception e) {
+                                Log.e("LZP", "StartActivity failed", e);
+                                visible = false;
+                                isMapStarted = false;
+                            }
+                        }
+                    }, delayMillis);
+                    Log.d("LZP", "WindowUtil --- Open window scheduled");
+                    delayMillis = 0;
+                }
             } else {
-                Log.d("LZP", "WindowUtil --- Open window skipped (already visible or not topApp)");
+                Log.d("LZP", "WindowUtil --- Open window skipped (not topApp)");
             }
         } catch (Exception e) {
             e.printStackTrace();

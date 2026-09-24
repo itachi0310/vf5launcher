@@ -14,6 +14,8 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.vf5regenlauncher.util.WindowUtil;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -232,6 +234,11 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
     }
 
     private void launchCameraApp() {
+        AndrewLauncherActivity.isMainScreen = false;
+        try {
+            WindowUtil.removePip(null);
+        } catch (Exception ignored) {}
+
         String pkg = activity.getSharedPreferences("launcher_prefs", Activity.MODE_PRIVATE)
                 .getString(PREF_CAMERA_PKG, DEFAULT_CAMERA_PKG);
         try {
