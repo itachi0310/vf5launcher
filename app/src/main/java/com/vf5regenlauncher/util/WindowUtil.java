@@ -54,35 +54,43 @@ public class WindowUtil {
         visible = false;
         removePip(null);
 
-        // Danh sách các key cấu hình navi phổ biến trên màn hình Android Auto
-        String[] naviKeys = {
-            "persist.syu.navi.packagename", // Key chuẩn của SYU/FYT
-            "persist.launcher.packagename", // Key tùy chỉnh của launcher cũ
-            "persist.sys.fyt.navi_package"  // Một số bản mod khác
-        };
+        // Ưu tiên 1: Đọc từ cài đặt cấu hình driving_prefs
+        SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+        String userSelectedMap = sp.getString("default_map_package", "");
+        if (!userSelectedMap.isEmpty() && checkAppInstalled(userSelectedMap)) {
+            AppPackageNmae = userSelectedMap;
+            Log.d(TAG, "Found user preferred map package: " + AppPackageNmae);
+        } else {
+            // Ưu tiên 2: Danh sách các key cấu hình navi trên hệ thống ROM
+            String[] naviKeys = {
+                "persist.launcher.packagename", // Key chuẩn do Launcher lưu
+                "persist.syu.navi.packagename",  // Key chuẩn của SYU/FYT
+                "persist.sys.fyt.navi_package"   // Key bổ trợ
+            };
 
-        AppPackageNmae = "";
-        for (String key : naviKeys) {
-            String val = SystemProperties.get(key, "");
-            if (!val.isEmpty() && checkAppInstalled(val)) {
-                AppPackageNmae = val;
-                Log.d(TAG, "Found valid navi package from " + key + ": " + AppPackageNmae);
-                break;
+            AppPackageNmae = "";
+            for (String key : naviKeys) {
+                String val = SystemProperties.get(key, "");
+                if (!val.isEmpty() && checkAppInstalled(val)) {
+                    AppPackageNmae = val;
+                    Log.d(TAG, "Found valid navi package from " + key + ": " + AppPackageNmae);
+                    break;
+                }
             }
-        }
 
-        // Nếu vẫn không tìm thấy, dùng Google Maps làm mặc định (kiểm tra cả bản cũ và mới)
-        if (AppPackageNmae.isEmpty()) {
-            if (checkAppInstalled(FytPackage.mapsAction)) {
-                AppPackageNmae = FytPackage.mapsAction;
-            } else if (checkAppInstalled("com.google.android.maps")) {
-                AppPackageNmae = "com.google.android.maps";
-            } else {
-                // Fallback cuối cùng nếu không có gì cả
-                AppPackageNmae = FytPackage.mapsAction;
+            // Ưu tiên 3: Fallback ứng dụng bản đồ phổ biến đã cài
+            if (AppPackageNmae.isEmpty()) {
+                if (checkAppInstalled("com.vietmap.vietmaplive")) {
+                    AppPackageNmae = "com.vietmap.vietmaplive";
+                } else if (checkAppInstalled(FytPackage.mapsAction)) {
+                    AppPackageNmae = FytPackage.mapsAction;
+                } else if (checkAppInstalled("com.google.android.maps")) {
+                    AppPackageNmae = "com.google.android.maps";
+                } else {
+                    AppPackageNmae = FytPackage.mapsAction;
+                }
+                SystemProperties.set("persist.launcher.packagename", AppPackageNmae);
             }
-            // Lưu lại vào persist.launcher.packagename để các lần sau nhanh hơn
-            SystemProperties.set("persist.launcher.packagename", AppPackageNmae);
         }
         
         Log.d("AppPackageNmae", "AppPackageNmae final: " + AppPackageNmae);
@@ -168,11 +176,8 @@ public class WindowUtil {
                         } catch (Throwable e) {
                         }
                         
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                        WindowUtil.intent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                        WindowUtil.intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                        // Đặt lại flag 270532608 (0x10200000) đặc trưng của FYT/SYU ROM để ép chế độ nhúng PiP
+                        WindowUtil.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
                         // Các extra bổ trợ - gửi rect đã lưu
                         WindowUtil.intent.putExtra("force_pip", true);
@@ -187,7 +192,7 @@ public class WindowUtil {
 
                         try {
                             AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
-                            Log.d("LZP", "WindowUtil --- startActivity executed successfully");
+                            Log.d("LZP", "WindowUtil --- startActivity executed successfully in PiP mode");
                             visible = true;
                         } catch (Exception e) {
                             Log.e("LZP", "StartActivity failed", e);

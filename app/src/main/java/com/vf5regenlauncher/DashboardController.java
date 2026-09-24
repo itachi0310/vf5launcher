@@ -102,9 +102,9 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
                         break;
                 }
                 
-                // Logic cũ cho phím Mode nếu nó gửi qua module 0
+                // Logic cho phím Mode nếu nó gửi qua module 0
                 if ((code == 1 || code == 2 || code == 45) && value == 1) {
-                    toggleDriveMode();
+                    toggleRegenMode();
                 }
             } 
             // Module 7: Canbus / Air / Charging

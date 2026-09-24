@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class WeatherWidgetController {
     private static final String TAG = "WeatherWidgetController";
@@ -31,7 +32,16 @@ public class WeatherWidgetController {
         
         View container = activity.findViewById(R.id.container_weather_widget);
         if (container != null) {
-            container.setOnClickListener(v -> openWeatherApp());
+            container.setOnClickListener(v -> {
+                Toast.makeText(activity, "Đang làm mới thời tiết...", Toast.LENGTH_SHORT).show();
+                if (weatherManager != null) {
+                    weatherManager.refreshWeather();
+                }
+            });
+            container.setOnLongClickListener(v -> {
+                openWeatherApp();
+                return true;
+            });
         }
 
         weatherManager.setCallback((temp, state, city) -> {

@@ -29,6 +29,9 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
     private static final String PREF_CAMERA_PKG = "camera_package_name";
     private static final String DEFAULT_CAMERA_PKG = "com.syu.camera360";
 
+    private static final String PREF_AC_PKG = "ac_package_name";
+    private static final String DEFAULT_AC_PKG = "com.syu.canbus.enter.air";
+
     // Các mã ID dựa trên tài liệu tham khảo RZC VinFast
     private static final int AIR_AC_TOGGLE = 11; // Chuyển sang 11 theo trí nhớ của bạn
     private static final int AIR_FAN_DOWN = 7;
@@ -74,16 +77,12 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
     }
 
     private void setupAirControls() {
-        // Nút A/C: Chạm nhẹ để gửi lệnh Bitmask (Bit 1 = 2) qua CMD 2
         if (btnAc != null) {
-            btnAc.setOnClickListener(v -> {
-//                sendAirBitmaskPulse(new int[]{2, 0, 0, 0, 0, 0});\
-                showAirActivity();
+            btnAc.setOnClickListener(v -> launchAcApp());
+            btnAc.setOnLongClickListener(v -> {
+                showAppPickerForAc();
+                return true;
             });
-//            btnAc.setOnLongClickListener(v -> {
-//                showAirActivity();
-//                return true;
-//            });
         }
         
         View fanUp = activity.findViewById(R.id.btn_fan_up);
@@ -105,6 +104,53 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
         if (tempDown != null) tempDown.setOnClickListener(v -> {
             sendAirBitmaskPulse(new int[]{0, 0, 0, 1, 0, 0});
         });
+    }
+
+    private void launchAcApp() {
+        String pkg = activity.getSharedPreferences("launcher_prefs", Activity.MODE_PRIVATE)
+                .getString(PREF_AC_PKG, DEFAULT_AC_PKG);
+        try {
+            Intent intent = activity.getPackageManager().getLaunchIntentForPackage(pkg);
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } else {
+                showAirActivity();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAirActivity();
+        }
+    }
+
+    private void showAppPickerForAc() {
+        final PackageManager pm = activity.getPackageManager();
+        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> pkgAppsList = pm.queryIntentActivities(mainIntent, 0);
+
+        Collections.sort(pkgAppsList, (o1, o2) ->
+                o1.loadLabel(pm).toString().compareToIgnoreCase(o2.loadLabel(pm).toString()));
+
+        final List<String> appNames = new ArrayList<>();
+        final List<String> packageNames = new ArrayList<>();
+        for (ResolveInfo ri : pkgAppsList) {
+            appNames.add(ri.loadLabel(pm).toString());
+            packageNames.add(ri.activityInfo.packageName);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle("Chọn ứng dụng Điều hòa (A/C)");
+        builder.setItems(appNames.toArray(new CharSequence[0]), (dialog, which) -> {
+            String selectedPkg = packageNames.get(which);
+            activity.getSharedPreferences("launcher_prefs", Activity.MODE_PRIVATE)
+                    .edit()
+                    .putString(PREF_AC_PKG, selectedPkg)
+                    .apply();
+            Toast.makeText(activity, "Đã lưu Điều hòa: " + selectedPkg, Toast.LENGTH_SHORT).show();
+            launchAcApp();
+        });
+        builder.show();
     }
 
     // Gửi lệnh Bitmask: Gửi mảng bit (Nhấn) rồi gửi mảng 0 (Nhả) sau 100ms

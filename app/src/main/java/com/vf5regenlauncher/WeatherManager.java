@@ -65,6 +65,14 @@ public class WeatherManager {
         checkAndUpdate();
     }
 
+    public void refreshWeather() {
+        requestLocation();
+        if (lastLat != 0 || lastLon != 0) {
+            updateCityName(lastLat, lastLon);
+            fetchWeather();
+        }
+    }
+
     private void requestLocation() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&

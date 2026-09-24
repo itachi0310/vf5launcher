@@ -95,7 +95,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                     appEmbedManager.updatePipRect();
                 }
                 WindowUtil.visible = false; // Reset state để openPip không bị filter
-                WindowUtil.startMapPip();
+                WindowUtil.startMapPip(null, true);
             }
         }, 1500);
         
@@ -114,9 +114,9 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         
         String action = intent.getAction();
         if ("com.syu.radio".equals(action)) {
-            Log.d("SCAN_DATA", "Intercepted Mode Key -> Toggle Drive Mode");
+            Log.d("SCAN_DATA", "Intercepted Mode Key -> Toggle Regen Mode");
             if (dashboardController != null) {
-                dashboardController.toggleDriveMode();
+                dashboardController.toggleRegenMode();
             }
         } else if ("com.syu.bt".equals(action)) {
             Log.d("SCAN_DATA", "Intercepted Call Key -> Toggle Regen Mode");
@@ -192,7 +192,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
             // 1. Xử lý phím Mode (Vô lăng) - Mã 176 hoặc 209
             if (keyCode == 176 || keyCode == 209) {
                 if (dashboardController != null) {
-                    dashboardController.toggleDriveMode();
+                    dashboardController.toggleRegenMode();
                 }
                 return true;
             }
@@ -282,8 +282,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     Log.d("Launcher", "onResume-----> startMapPip after 500ms");
-                    // Theo launcher 34: Không reset visible ở đây, để startMapPip tự quyết định
-                    WindowUtil.startMapPip();
+                    WindowUtil.startMapPip(null, true);
                 }
             }, 500);
         } else {

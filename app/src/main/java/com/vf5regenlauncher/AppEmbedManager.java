@@ -69,8 +69,16 @@ public class AppEmbedManager {
         SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
         currentPackage = sp.getString("default_map_package", null);
         if (currentPackage == null || currentPackage.isEmpty()) {
-            currentPackage = getSystemProperty("persist.launcher.packagename", "com.vietmap.vietmaplive");
+            currentPackage = getSystemProperty("persist.launcher.packagename", "");
         }
+        if (currentPackage == null || currentPackage.isEmpty()) {
+            currentPackage = getSystemProperty("persist.syu.navi.packagename", "");
+        }
+        if (currentPackage == null || currentPackage.isEmpty()) {
+            currentPackage = "com.vietmap.vietmaplive";
+        }
+        WindowUtil.AppPackageNmae = currentPackage;
+        Log.d(TAG, "determineMapPackage final: " + currentPackage);
     }
 
     /**
