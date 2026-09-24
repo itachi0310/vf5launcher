@@ -54,7 +54,7 @@ public class SettingsActivity extends AppCompatActivity {
         swHighway.setChecked(sp.getBoolean("highway_assist", true));
         swStoplight.setChecked(sp.getBoolean("stoplight_assist", true));
         
-        String mapName = sp.getString("default_map_name", "Chưa chọn");
+        String mapName = sp.getString("default_map_name", "Google Maps");
         tvCurrentMap.setText("Hiện tại: " + mapName);
     }
 

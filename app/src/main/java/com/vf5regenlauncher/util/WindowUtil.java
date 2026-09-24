@@ -54,44 +54,9 @@ public class WindowUtil {
         visible = false;
         removePip(null);
 
-        // Ưu tiên 1: Đọc từ cài đặt cấu hình driving_prefs
+        // Đọc trực tiếp từ cấu hình người dùng trong Settings (mặc định ban đầu là Google Maps)
         SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-        String userSelectedMap = sp.getString("default_map_package", "");
-        if (!userSelectedMap.isEmpty() && checkAppInstalled(userSelectedMap)) {
-            AppPackageNmae = userSelectedMap;
-            Log.d(TAG, "Found user preferred map package: " + AppPackageNmae);
-        } else {
-            // Ưu tiên 2: Danh sách các key cấu hình navi trên hệ thống ROM
-            String[] naviKeys = {
-                "persist.launcher.packagename", // Key chuẩn do Launcher lưu
-                "persist.syu.navi.packagename",  // Key chuẩn của SYU/FYT
-                "persist.sys.fyt.navi_package"   // Key bổ trợ
-            };
-
-            AppPackageNmae = "";
-            for (String key : naviKeys) {
-                String val = SystemProperties.get(key, "");
-                if (!val.isEmpty() && checkAppInstalled(val)) {
-                    AppPackageNmae = val;
-                    Log.d(TAG, "Found valid navi package from " + key + ": " + AppPackageNmae);
-                    break;
-                }
-            }
-
-            // Ưu tiên 3: Fallback ứng dụng bản đồ phổ biến đã cài
-            if (AppPackageNmae.isEmpty()) {
-                if (checkAppInstalled("com.vietmap.vietmaplive")) {
-                    AppPackageNmae = "com.vietmap.vietmaplive";
-                } else if (checkAppInstalled(FytPackage.mapsAction)) {
-                    AppPackageNmae = FytPackage.mapsAction;
-                } else if (checkAppInstalled("com.google.android.maps")) {
-                    AppPackageNmae = "com.google.android.maps";
-                } else {
-                    AppPackageNmae = FytPackage.mapsAction;
-                }
-                SystemProperties.set("persist.launcher.packagename", AppPackageNmae);
-            }
-        }
+        AppPackageNmae = sp.getString("default_map_package", "com.google.android.apps.maps");
         
         Log.d("AppPackageNmae", "AppPackageNmae final: " + AppPackageNmae);
     }
@@ -172,26 +137,17 @@ public class WindowUtil {
                     @Override
                     public void run() {
                         try {
+                            WindowUtil.intent.putExtra("force_pip", true);
                             SystemProperties.set("sys.lsec.force_pip", "true");
-                        } catch (Throwable e) {
-                        }
-                        
-                        // Đặt lại flag 270532608 (0x10200000) đặc trưng của FYT/SYU ROM để ép chế độ nhúng PiP
-                        WindowUtil.intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
-                        // Các extra bổ trợ - gửi rect đã lưu
-                        WindowUtil.intent.putExtra("force_pip", true);
-                        WindowUtil.intent.putExtra("pip_mode", 1);
+                            SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+                            String savedRect = sp.getString(PREFS_RECT, "");
+                            if (!savedRect.isEmpty()) {
+                                WindowUtil.intent.putExtra("pip_rect", savedRect);
+                                WindowUtil.intent.putExtra("rect", savedRect);
+                            }
 
-                        SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-                        String savedRect = sp.getString(PREFS_RECT, "");
-                        if (!savedRect.isEmpty()) {
-                            WindowUtil.intent.putExtra("pip_rect", savedRect);
-                            WindowUtil.intent.putExtra("rect", savedRect);
-                        }
-
-                        try {
-                            AndrewLauncherActivity.getInstance().startActivity(WindowUtil.intent);
+                            LauncherApplication.sApp.startActivity(WindowUtil.intent);
                             Log.d("LZP", "WindowUtil --- startActivity executed successfully in PiP mode");
                             visible = true;
                         } catch (Exception e) {

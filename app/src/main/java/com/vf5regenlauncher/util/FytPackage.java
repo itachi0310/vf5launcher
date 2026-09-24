@@ -118,29 +118,33 @@ public class FytPackage {
             return intent;
         }
 
-        // Ưu tiên dùng getLaunchIntentForPackage để lấy Activity chính thức (được Exported)
-        Intent intent = packageManager.getLaunchIntentForPackage(pkg);
-
-        if (intent == null) {
-            // Fallback: Tìm thủ công qua ACTION_MAIN nếu getLaunchIntent thất bại
-            Intent mainIntent = new Intent("android.intent.action.MAIN", (Uri) null);
-            mainIntent.setPackage(pkg);
-            List<ResolveInfo> apps = packageManager.queryIntentActivities(mainIntent, 0);
-            for (ResolveInfo res : apps) {
-                // Chỉ lấy Activity nếu nó được Exported để tránh lỗi Permission Denial
-                if (res.activityInfo.packageName.equals(pkg) && res.activityInfo.exported) {
-                    intent = new Intent("android.intent.action.MAIN");
-                    intent.setComponent(new ComponentName(res.activityInfo.packageName, res.activityInfo.name));
-                    break;
-                }
+        Intent mainIntent;
+        Intent intent;
+        if (pkg.equals(sysSetAction)) {
+            intent = new Intent("android.settings.SETTINGS");
+            mainIntent = new Intent("android.settings.SETTINGS", (Uri) null);
+        } else {
+            mainIntent = new Intent("android.intent.action.MAIN", (Uri) null);
+            intent = new Intent("android.intent.action.MAIN");
+        }
+        mainIntent.setPackage(pkg);
+        List<ResolveInfo> apps = packageManager.queryIntentActivities(mainIntent, 0);
+        for (ResolveInfo res : apps) {
+            if (res.activityInfo.packageName.equals(pkg)) {
+                intent = new Intent("android.intent.action.MAIN");
+                intent.setFlags(270532608);
+                intent.setComponent(new ComponentName(res.activityInfo.packageName, res.activityInfo.name));
             }
         }
 
-        if (intent != null) {
-            // Flag đặc trưng của hệ thống FYT/SYU để hỗ trợ chạy PIP/cửa sổ nổi
-            intent.setFlags(270532608); 
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (intent.getComponent() == null) {
+            Intent launchIntent = packageManager.getLaunchIntentForPackage(pkg);
+            if (launchIntent != null) {
+                intent = launchIntent;
+                intent.setFlags(270532608);
+            }
         }
+
         return intent;
     }
 

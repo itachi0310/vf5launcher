@@ -95,7 +95,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                     appEmbedManager.updatePipRect();
                 }
                 WindowUtil.visible = false; // Reset state để openPip không bị filter
-                WindowUtil.startMapPip(null, true);
+                WindowUtil.startMapPip();
             }
         }, 1500);
         
@@ -282,7 +282,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     Log.d("Launcher", "onResume-----> startMapPip after 500ms");
-                    WindowUtil.startMapPip(null, true);
+                    WindowUtil.startMapPip();
                 }
             }, 500);
         } else {
