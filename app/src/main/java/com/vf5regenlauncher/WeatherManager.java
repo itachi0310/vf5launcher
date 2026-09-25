@@ -173,45 +173,83 @@ public class WeatherManager {
     }
 
     private String fetchCityNameFromNetwork(double lat, double lon) {
+        // Strategy 1: BigDataCloud Free Client Reverse Geocode API (Nhanh, không chặn 403)
         try {
-            // Thêm accept-language=vi để lấy tên tiếng Việt
-            String urlStr = String.format(Locale.US, 
-                "https://nominatim.openstreetmap.org/reverse?format=json&lat=%.6f&lon=%.6f&zoom=14&addressdetails=1&accept-language=vi",
+            String urlStr = String.format(Locale.US,
+                "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=%.6f&longitude=%.6f&localityLanguage=vi",
                 lat, lon);
-            
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("User-Agent", "VF5Launcher/1.0"); 
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
             conn.setConnectTimeout(5000);
             conn.setReadTimeout(5000);
-            
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder result = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) result.append(line);
-            reader.close();
 
-            JSONObject json = new JSONObject(result.toString());
-            if (json.has("address")) {
-                JSONObject addr = json.getJSONObject("address");
+            if (conn.getResponseCode() == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) result.append(line);
+                reader.close();
+
+                JSONObject json = new JSONObject(result.toString());
                 String city = null;
-                
-                // Cố gắng lấy cấp độ Phường/Quận/Thành phố
-                if (addr.has("suburb")) city = addr.getString("suburb");
-                else if (addr.has("neighbourhood")) city = addr.getString("neighbourhood");
-                else if (addr.has("quarter")) city = addr.getString("quarter");
-                else if (addr.has("town")) city = addr.getString("town");
-                else if (addr.has("city")) city = addr.getString("city");
-                else if (addr.has("district")) city = addr.getString("district");
-                else if (addr.has("state")) city = addr.getString("state");
-                
-                if (city != null) {
+                if (json.has("locality") && !json.getString("locality").isEmpty()) {
+                    city = json.getString("locality");
+                } else if (json.has("city") && !json.getString("city").isEmpty()) {
+                    city = json.getString("city");
+                } else if (json.has("principalSubdivision") && !json.getString("principalSubdivision").isEmpty()) {
+                    city = json.getString("principalSubdivision");
+                }
+
+                if (city != null && !city.isEmpty()) {
+                    Log.d(TAG, "BigDataCloud reverse geocode success: " + city);
                     return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "").replace("Quận ", "").replace("Huyện ", "");
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "Network reverse geocoding error", e);
+            Log.w(TAG, "BigDataCloud reverse geocode error: " + e.getMessage());
         }
+
+        // Strategy 2: OpenStreetMap Nominatim với Browser User-Agent chuẩn
+        try {
+            String urlStr = String.format(Locale.US,
+                "https://nominatim.openstreetmap.org/reverse?format=json&lat=%.6f&lon=%.6f&zoom=14&addressdetails=1&accept-language=vi",
+                lat, lon);
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:109.0) Gecko/109.0 Firefox/119.0");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            if (conn.getResponseCode() == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) result.append(line);
+                reader.close();
+
+                JSONObject json = new JSONObject(result.toString());
+                if (json.has("address")) {
+                    JSONObject addr = json.getJSONObject("address");
+                    String city = null;
+                    if (addr.has("suburb")) city = addr.getString("suburb");
+                    else if (addr.has("neighbourhood")) city = addr.getString("neighbourhood");
+                    else if (addr.has("quarter")) city = addr.getString("quarter");
+                    else if (addr.has("town")) city = addr.getString("town");
+                    else if (addr.has("city")) city = addr.getString("city");
+                    else if (addr.has("district")) city = addr.getString("district");
+                    else if (addr.has("state")) city = addr.getString("state");
+
+                    if (city != null && !city.isEmpty()) {
+                        Log.d(TAG, "Nominatim reverse geocode success: " + city);
+                        return city.replace("Thành phố ", "").replace("TP. ", "").replace("Tỉnh ", "").replace("Quận ", "").replace("Huyện ", "");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Nominatim reverse geocode error", e);
+        }
+
         return null;
     }
 
