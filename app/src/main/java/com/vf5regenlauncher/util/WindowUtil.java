@@ -144,6 +144,77 @@ public class WindowUtil {
         }
     }
 
+    public static boolean isAppRunning(Context context, String packageName) {
+        if (packageName == null || packageName.isEmpty()) return false;
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return false;
+
+            // 1. Kiểm tra Running Tasks (Hiệu quả nhất trên FYT/SYU ROM)
+            try {
+                List<ActivityManager.RunningTaskInfo> tasks = am.getRunningTasks(100);
+                if (tasks != null) {
+                    for (ActivityManager.RunningTaskInfo task : tasks) {
+                        String topPkg = task.topActivity != null ? task.topActivity.getPackageName() : "";
+                        String basePkg = task.baseActivity != null ? task.baseActivity.getPackageName() : "";
+                        
+                        if ((!topPkg.isEmpty() && (topPkg.contains(packageName) || packageName.contains(topPkg))) ||
+                            (!basePkg.isEmpty() && (basePkg.contains(packageName) || packageName.contains(basePkg)))) {
+                            Log.d(TAG, "isAppRunning found in RunningTasks: top=" + topPkg + ", base=" + basePkg);
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "getRunningTasks check failed: " + e.getMessage());
+            }
+
+            // 2. Kiểm tra Running Processes
+            try {
+                List<ActivityManager.RunningAppProcessInfo> processes = am.getRunningAppProcesses();
+                if (processes != null) {
+                    for (ActivityManager.RunningAppProcessInfo p : processes) {
+                        if (p.processName != null && (p.processName.contains(packageName) || packageName.contains(p.processName))) {
+                            Log.d(TAG, "isAppRunning found in RunningProcesses: " + p.processName);
+                            return true;
+                        }
+                        if (p.pkgList != null) {
+                            for (String pkg : p.pkgList) {
+                                if (pkg != null && (pkg.contains(packageName) || packageName.contains(pkg))) {
+                                    Log.d(TAG, "isAppRunning found in Process pkgList: " + pkg);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "getRunningAppProcesses check failed: " + e.getMessage());
+            }
+
+            // 3. Kiểm tra Running Services
+            try {
+                List<ActivityManager.RunningServiceInfo> services = am.getRunningServices(100);
+                if (services != null) {
+                    for (ActivityManager.RunningServiceInfo s : services) {
+                        if (s.service != null && s.service.getPackageName() != null &&
+                            (s.service.getPackageName().contains(packageName) || packageName.contains(s.service.getPackageName()))) {
+                            Log.d(TAG, "isAppRunning found in RunningServices: " + s.service.getPackageName());
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "getRunningServices check failed: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "isAppRunning error", e);
+        }
+        return false;
+    }
+
+
     public static void startMapPip() {
         ThreadManager.getLongPool().execute(new Runnable() {
             @Override
@@ -214,6 +285,10 @@ public class WindowUtil {
                 Log.d(TAG, "isMapStarted: " + isMapStarted);
                 Log.d(TAG, "isPinnedStackVisible: " + isPinnedStackVisible());
 
+                boolean running = isAppRunning(LauncherApplication.sApp, AAppPackageNmae);
+                Log.d(TAG, "App " + AAppPackageNmae + " is running: " + running);
+
+
                 intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
                 Log.d(TAG, "intent: " + intent);
                 if (intent == null) {
@@ -225,7 +300,7 @@ public class WindowUtil {
                     AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
                 }
 
-                if (!isPinnedStackVisible() || !isMapStarted) {
+                if (!isPinnedStackVisible() || !isMapStarted || !running || !force) {
                     AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
