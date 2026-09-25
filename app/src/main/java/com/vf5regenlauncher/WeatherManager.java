@@ -54,8 +54,8 @@ public class WeatherManager {
 
     public void setCallback(WeatherCallback callback) {
         this.callback = callback;
-        // Gửi ngay dữ liệu cache nếu có
-        if (callback != null && lastUpdateTime > 0) {
+        // Gửi ngay dữ liệu vị trí/thời tiết ban đầu/cache
+        if (callback != null) {
             callback.onWeatherUpdated(getCachedTemp(), getCachedState(), lastCity);
         }
     }
@@ -70,6 +70,8 @@ public class WeatherManager {
         if (lastLat != 0 || lastLon != 0) {
             updateCityName(lastLat, lastLon);
             fetchWeather();
+        } else if (callback != null) {
+            callback.onWeatherUpdated(getCachedTemp(), getCachedState(), lastCity);
         }
     }
 
@@ -226,13 +228,11 @@ public class WeatherManager {
         Log.d(TAG, String.format(Locale.US, "New location: %.6f, %.6f (Accuracy: %.1fm, Provider: %s, Distance: %.1fm)", 
             location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getProvider(), distance));
         
-        if (distance > LOCATION_DISTANCE_THRESHOLD || lastLat == 0) {
-            lastLat = location.getLatitude();
-            lastLon = location.getLongitude();
-            Log.d(TAG, "Location change exceeds threshold, triggering weather update");
-            updateCityName(lastLat, lastLon);
-            fetchWeather();
-        }
+        lastLat = location.getLatitude();
+        lastLon = location.getLongitude();
+        // Ưu tiên cập nhật tên vị trí trước các nội dung khác
+        updateCityName(lastLat, lastLon);
+        fetchWeather();
     }
 
     private void checkAndUpdate() {
@@ -316,7 +316,7 @@ public class WeatherManager {
         lastUpdateTime = prefs.getLong("time", 0);
         lastLat = prefs.getFloat("lat", 0);
         lastLon = prefs.getFloat("lon", 0);
-        lastCity = prefs.getString("city", "Hà Nội");
+        lastCity = prefs.getString("city", "Hồ Chí Minh");
     }
 
     private float getCachedTemp() { return prefs.getFloat("temp", 25.0f); }
