@@ -288,6 +288,41 @@ public class WindowUtil {
                 boolean running = isAppRunning(LauncherApplication.sApp, AAppPackageNmae);
                 Log.d(TAG, "App " + AAppPackageNmae + " is running: " + running);
 
+                //        ### Cách dùng với Maps
+
+
+AppStateManager.AppState state =
+        AppStateManager.getAppState(
+                LauncherApplication.sApp, AAppPackageNmae
+        );
+                Log.d(
+                        TAG,
+                        AAppPackageNmae + "- Maps state = " + state
+                );
+
+
+
+            //Hoặc nếu muốn xem **toàn bộ thông tin**:
+
+                AppStateManager.AppInfo info = AppStateManager.dump(LauncherApplication.sApp, AAppPackageNmae);
+                Log.d(
+                        TAG,
+                        AAppPackageNmae + "- Maps info = " + info
+                );
+
+        //        ### Với vấn đề hiện tại của bạn, tôi đặc biệt khuyên dùng `isAppStarted()`
+
+boolean mapStarted =
+        AppStateManager.isAppStarted(
+                LauncherApplication.sApp, AAppPackageNmae
+        );
+                Log.d(
+                        TAG,
+                        AAppPackageNmae + "- Maps mapStarted = " + mapStarted
+                );
+
+
+
 
                 intent = FytPackage.getIntent(LauncherApplication.sApp, AAppPackageNmae);
                 Log.d(TAG, "intent: " + intent);
@@ -300,7 +335,7 @@ public class WindowUtil {
                     AndrewLauncherActivity.getInstance().sendBroadcast(new Intent("com.syu.camera360.show"));
                 }
 
-                if (!isPinnedStackVisible() || !isMapStarted || !running || !force) {
+                if (isPinnedStackVisible() || !force || mapStarted || isMapStarted) {
                     AndrewLauncherActivity.getInstance().handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
