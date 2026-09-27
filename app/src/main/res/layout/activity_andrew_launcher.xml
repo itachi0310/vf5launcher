@@ -22,19 +22,19 @@
         android:orientation="horizontal"
         android:baselineAligned="false">
 
-        <!-- Cột TRÁI: Thông tin xe (Dashboard) (32%) -->
+        <!-- Cột TRÁI: Thông tin xe (Dashboard) (26%) -->
         <include
             layout="@layout/layout_launcher_dashboard"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="32" />
+            android:layout_weight="26" />
 
-        <!-- Cột PHẢI: Widgets & Apps (68%) -->
+        <!-- Cột PHẢI: Widgets & Apps (74%) -->
         <include
             layout="@layout/layout_launcher_widgets"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="68" />
+            android:layout_weight="74" />
 
     </LinearLayout>
 

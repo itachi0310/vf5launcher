@@ -1,13 +1,18 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:paddingLeft="8dp"
+    android:paddingTop="8dp"
+    android:paddingRight="4dp"
+    android:paddingBottom="8dp">
 
     <!-- GIAO DIỆN LÁI XE (DASHBOARD) -->
     <LinearLayout
         android:id="@+id/layout_driving_dashboard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0A0F1A"
+        android:background="@drawable/bg_widget_card"
+        android:clipToOutline="true"
         android:orientation="vertical"
         android:weightSum="100">
 
@@ -94,60 +99,53 @@
             android:paddingLeft="12dp"
             android:paddingRight="12dp"
             android:paddingTop="12dp"
-            android:paddingBottom="30dp"
+            android:paddingBottom="20dp"
             android:gravity="bottom">
 
-            <!-- Dòng 1: Chế độ lái (Tiêu đề bên trái, Cụm nút bên phải) -->
+            <!-- Chế độ lái (Tiêu đề trên, Nút dưới - 2 dòng) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chế độ lái"
+                android:textColor="#AAAAAA"
+                android:textSize="15sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"/>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:background="@drawable/bg_button_unselected"
+                android:padding="2dp"
                 android:layout_marginBottom="12dp">
 
                 <TextView
+                    android:id="@+id/btn_mode_sport"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="3.0"
-                    android:text="Chế độ lái"
-                    android:textColor="#AAAAAA"
-                    android:textSize="14sp" />
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="Thể thao"
+                    android:gravity="center"
+                    android:textColor="#FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground" />
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/btn_mode_eco"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="7.0"
-                    android:orientation="horizontal"
-                    android:background="@drawable/bg_button_unselected"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:id="@+id/btn_mode_sport"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_weight="1"
-                        android:text="Thể thao"
-                        android:gravity="center"
-                        android:textColor="#FFFFFF"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="?attr/selectableItemBackground" />
-
-                    <TextView
-                        android:id="@+id/btn_mode_eco"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_weight="1"
-                        android:text="Tiết kiệm"
-                        android:gravity="center"
-                        android:textColor="#FFFFFF"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="?attr/selectableItemBackground" />
-                </LinearLayout>
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="Tiết kiệm"
+                    android:gravity="center"
+                    android:textColor="#FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground" />
             </LinearLayout>
 
-            <!-- Chế độ phục hồi (Quay lại mẫu cũ: Tiêu đề trên, Nút dưới) -->
+            <!-- Chế độ phục hồi (Tiêu đề trên, Nút dưới - 2 dòng) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -208,7 +206,8 @@
         android:id="@+id/layout_charging_dashboard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0A0F1A"
+        android:background="@drawable/bg_widget_card"
+        android:clipToOutline="true"
         android:orientation="vertical"
         android:gravity="center"
         android:padding="20dp"
