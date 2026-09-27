@@ -193,7 +193,6 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
             // 1. Xử lý phím Mode (Vô lăng) - Mã 176 hoặc 209
             if (keyCode == 176 || keyCode == 209) {
-                isMainScreen = false;
                 if (dashboardController != null) {
                     dashboardController.toggleRegenMode();
                 }

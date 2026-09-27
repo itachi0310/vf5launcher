@@ -160,12 +160,20 @@ public class DashboardController implements CanbusConnector.CanbusDataListener {
         tvChargeTime.setText(String.format("Thời gian còn lại: %dh %02dmin", hours, mins));
     }
 
+    private long lastRegenToggleTime = 0;
+
     public void toggleDriveMode() {
         int nextMode = (currentDriveMode == 0) ? 1 : 0;
         sendCarCmd(33, nextMode);
     }
 
     public void toggleRegenMode() {
+        long now = System.currentTimeMillis();
+        if (now - lastRegenToggleTime < 400) {
+            Log.d("DashboardController", "toggleRegenMode ignored (debounce)");
+            return;
+        }
+        lastRegenToggleTime = now;
         // Chuyển đổi giữa Low (1) và High (2)
         int nextMode = (currentRegenMode == 1) ? 2 : 1;
         sendCarCmd(34, nextMode);
