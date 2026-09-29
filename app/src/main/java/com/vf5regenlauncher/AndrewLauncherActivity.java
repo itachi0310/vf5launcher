@@ -193,7 +193,6 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
             // 1. Xử lý phím Mode (Vô lăng) - Mã 176 hoặc 209
             if (keyCode == 176 || keyCode == 209) {
-                isMainScreen = false;
                 if (dashboardController != null) {
                     dashboardController.toggleRegenMode();
                 }
@@ -205,8 +204,27 @@ public class AndrewLauncherActivity extends AppCompatActivity {
                 openSystemAppList();
                 return true;
             }
+
+            // 3. Xử lý phím Back (Mã 4) - Chuyển lệnh Back tới cửa sổ PiP Map / Hệ thống
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                sendBackKeyToPip();
+                return true;
+            }
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    public void sendBackKeyToPip() {
+        com.vf5regenlauncher.util.thread.ThreadManager.getLongPool().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Runtime.getRuntime().exec("input keyevent 4");
+                } catch (Exception e) {
+                    Log.e("Launcher", "Failed to send BACK key to PiP", e);
+                }
+            }
+        });
     }
 
     public void openSystemAppList() {
@@ -333,7 +351,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // Không làm gì để tránh thoát Launcher bằng phím Back
+        sendBackKeyToPip();
     }
 
     @Override

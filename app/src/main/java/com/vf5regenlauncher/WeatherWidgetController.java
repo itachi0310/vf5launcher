@@ -2,9 +2,12 @@ package com.vf5regenlauncher;
 
 import android.content.Intent;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.widget.TextViewCompat;
 
 public class WeatherWidgetController {
     private static final String TAG = "WeatherWidgetController";
@@ -29,6 +32,12 @@ public class WeatherWidgetController {
         tvStatus = activity.findViewById(R.id.tv_weather_status);
         tvTemp = activity.findViewById(R.id.tv_weather_temp);
         tvEmoji = activity.findViewById(R.id.tv_weather_icon_emoji);
+        
+        if (tvCity != null) {
+            TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                tvCity, 10, 18, 1, TypedValue.COMPLEX_UNIT_SP
+            );
+        }
         
         View container = activity.findViewById(R.id.container_weather_widget);
         if (container != null) {
