@@ -66,6 +66,18 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Thêm bộ lọc cho phím Mode (Radio) và phím Cuộc gọi (Bluetooth) -->
+            <intent-filter android:priority="1000">
+                <action android:name="com.syu.radio" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter android:priority="1000">
+                <action android:name="com.syu.bt" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
         </activity>
 
         <activity
