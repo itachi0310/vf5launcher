@@ -19,6 +19,7 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
     
     private boolean optionHighwayEnabled = false;
     private boolean optionSmartEnabled = false;
+    private boolean optionSlowRegenEnabled = false;
 
     // State tracking
     private boolean isAboveHighwayThreshold = false;
@@ -49,8 +50,10 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
 
     private void loadSettings() {
         SharedPreferences sp = context.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+        // Mặc định các option luôn TẮT (false)
         optionHighwayEnabled = sp.getBoolean("highway_assist", false);
         optionSmartEnabled = sp.getBoolean("smart_assist", false);
+        optionSlowRegenEnabled = sp.getBoolean("slow_regen_assist", false);
     }
 
     private void startPeriodicCheck() {
@@ -104,10 +107,20 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
         // Không làm gì nếu đang trong thời gian khóa
         if (now - lastChangeTime < LOCK_DURATION) return;
         
-        // Cực kỳ quan trọng: Khóa toàn bộ logic tự động nếu đang ở số R (Lùi)
-        // Số 1 trên VF5 thường là R
+        // Khóa toàn bộ logic tự động nếu đang ở số R (Lùi)
         if (currentGear == 1) {
             return;
+        }
+
+        // --- OPTION 3: HỖ TRỢ THẮNG ĐIỀU KIỆN (< 12 KM/H) ---
+        if (optionSlowRegenEnabled) {
+            // Khi vận tốc xe giảm dưới 12km/h mà chế độ regen đang ở mức CAO (2) -> chuyển về THẤP (1)
+            // Nếu đang ở THẤP (1) hoặc TẮT (0) thì bỏ qua
+            if (currentSpeedKmH < 12 && currentSpeedKmH > 0) {
+                if (currentRegenMode == 2) {
+                    executeRegenChange(1, "Slow Speed < 12km/h (HIGH -> LOW)");
+                }
+            }
         }
         if (optionHighwayEnabled) {
             if (currentSpeedKmH >= 75) {

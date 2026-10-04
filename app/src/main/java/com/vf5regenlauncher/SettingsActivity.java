@@ -9,7 +9,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
-    private Switch swHighway, swStoplight;
+    private Switch swHighway, swStoplight, swSlowRegen;
     private TextView tvCurrentMap;
 
     @Override
@@ -19,12 +19,14 @@ public class SettingsActivity extends AppCompatActivity {
 
         swHighway = findViewById(R.id.sw_highway_assist);
         swStoplight = findViewById(R.id.sw_stoplight_assist);
+        swSlowRegen = findViewById(R.id.sw_slow_regen_assist);
         tvCurrentMap = findViewById(R.id.tv_current_map);
 
         loadSettings();
 
         swHighway.setOnCheckedChangeListener((buttonView, isChecked) -> saveSetting("highway_assist", isChecked));
-        swStoplight.setOnCheckedChangeListener((buttonView, isChecked) -> saveSetting("stoplight_assist", isChecked));
+        swStoplight.setOnCheckedChangeListener((buttonView, isChecked) -> saveSetting("smart_assist", isChecked));
+        swSlowRegen.setOnCheckedChangeListener((buttonView, isChecked) -> saveSetting("slow_regen_assist", isChecked));
         
         tvCurrentMap.setOnClickListener(v -> showMapPicker());
 
@@ -51,8 +53,10 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void loadSettings() {
         SharedPreferences sp = getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-        swHighway.setChecked(sp.getBoolean("highway_assist", true));
-        swStoplight.setChecked(sp.getBoolean("stoplight_assist", true));
+        // Mặc định tất cả các option luôn TẮT (false)
+        swHighway.setChecked(sp.getBoolean("highway_assist", false));
+        swStoplight.setChecked(sp.getBoolean("smart_assist", false));
+        swSlowRegen.setChecked(sp.getBoolean("slow_regen_assist", false));
         
         String mapName = sp.getString("default_map_name", "Chưa chọn");
         tvCurrentMap.setText("Hiện tại: " + mapName);
