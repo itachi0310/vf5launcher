@@ -115,16 +115,16 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         if (intent == null) return;
         
         String action = intent.getAction();
-        if ("com.syu.radio".equals(action)) {
+        if ("com.syu.radio".equals(action) || "com.syu.bt".equals(action)) {
             Log.d("SCAN_DATA", "Intercepted Mode Key -> Toggle Regen Mode");
+            isMainScreen = true;
             if (dashboardController != null) {
                 dashboardController.toggleRegenMode();
             }
-        } else if ("com.syu.bt".equals(action)) {
-            Log.d("SCAN_DATA", "Intercepted Call Key -> Toggle Regen Mode");
-            if (dashboardController != null) {
-                dashboardController.toggleRegenMode();
+            if (appEmbedManager != null) {
+                appEmbedManager.updatePipRect();
             }
+            WindowUtil.startMapPip(null, true);
         }
     }
 
@@ -193,9 +193,14 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
             // 1. Xử lý phím Mode (Vô lăng) - Mã 176 hoặc 209
             if (keyCode == 176 || keyCode == 209) {
+                isMainScreen = true;
                 if (dashboardController != null) {
                     dashboardController.toggleRegenMode();
                 }
+                if (appEmbedManager != null) {
+                    appEmbedManager.updatePipRect();
+                }
+                WindowUtil.startMapPip(null, true);
                 return true;
             }
 
@@ -327,7 +332,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         if (weatherWidgetController != null) {
             weatherWidgetController.unregister();
         }
-        Log.d("Launcher", "Launcher paused - map remains in background mode");
+        Log.d("Launcher", "Launcher paused - PiP preserved");
     }
 
     @Override

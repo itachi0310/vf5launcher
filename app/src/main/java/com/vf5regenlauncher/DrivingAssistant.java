@@ -27,6 +27,7 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
     private int decelCount = 0;
 
     // Timer logic
+    private final long startTime = System.currentTimeMillis();
     private long highwayHighStartTime = 0;
     private long highwayLowStartTime = 0;
     private long smartLowStartTime = 0;
@@ -104,6 +105,10 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
         loadSettings();
         long now = System.currentTimeMillis();
         
+        // Không tự động thay đổi chế độ khi vừa start launcher (10s đầu) hoặc khi xe đang dừng (tốc độ <= 0)
+        if (now - startTime < 10000) return;
+        if (currentSpeedKmH <= 0) return;
+
         // Không làm gì nếu đang trong thời gian khóa
         if (now - lastChangeTime < LOCK_DURATION) return;
         
@@ -116,7 +121,7 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
         if (optionSlowRegenEnabled) {
             // Khi vận tốc xe giảm dưới 12km/h mà chế độ regen đang ở mức CAO (2) -> chuyển về THẤP (1)
             // Nếu đang ở THẤP (1) hoặc TẮT (0) thì bỏ qua
-            if (currentSpeedKmH < 12 && currentSpeedKmH > 0) {
+            if (currentSpeedKmH < 12) {
                 if (currentRegenMode == 2) {
                     executeRegenChange(1, "Slow Speed < 12km/h (HIGH -> LOW)");
                 }

@@ -291,14 +291,14 @@ public class WindowUtil {
                 //        ### Cách dùng với Maps
 
 
-AppStateManager.AppState state =
-        AppStateManager.getAppState(
-                LauncherApplication.sApp, AAppPackageNmae
-        );
-                Log.d(
-                        TAG,
-                        AAppPackageNmae + "- Maps state = " + state
-                );
+            AppStateManager.AppState state =
+                                AppStateManager.getAppState(
+                                        LauncherApplication.sApp, AAppPackageNmae
+                                );
+                                        Log.d(
+                                                TAG,
+                                                AAppPackageNmae + "- Maps state = " + state
+                                        );
 
 
 
