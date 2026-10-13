@@ -234,6 +234,10 @@ public class AndrewLauncherActivity extends AppCompatActivity {
 
     public void openSystemAppList() {
         isMainScreen = false;
+        if (appEmbedManager != null) {
+            appEmbedManager.hidePip();
+        }
+        WindowUtil.removePip(null);
         Log.d("Launcher", "Opening System App List...");
         try {
             // Thử mở trực tiếp Activity Launcher của SYU (Cách này rất hiệu quả nếu Broadcast bị chặn)

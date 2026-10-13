@@ -31,6 +31,7 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
     private long highwayHighStartTime = 0;
     private long highwayLowStartTime = 0;
     private long smartLowStartTime = 0;
+    private long accelStartTime = 0;
     private long lastChangeTime = 0;
     private static final long LOCK_DURATION = 2500; // Khóa 2.5s để xe ổn định
 
@@ -117,15 +118,33 @@ public class DrivingAssistant implements CanbusConnector.CanbusDataListener {
             return;
         }
 
-        // --- OPTION 3: HỖ TRỢ THẮNG ĐIỀU KIỆN (< 12 KM/H) ---
+        // --- OPTION 3: HỖ TRỢ THẮNG ĐIỀU KIỆN (< 12 KM/H HOẶC TĂNG TỐC LIÊN TỤC 2S) ---
         if (optionSlowRegenEnabled) {
-            // Khi vận tốc xe giảm dưới 12km/h mà chế độ regen đang ở mức CAO (2) -> chuyển về THẤP (1)
-            // Nếu đang ở THẤP (1) hoặc TẮT (0) thì bỏ qua
-            if (currentSpeedKmH < 12) {
+            // Điều kiện 1: Vận tốc < 12km/h mà Regen đang ở CAO (2) -> chuyển về THẤP (1)
+            // Điều kiện 2: Gia tốc tăng liên tục trong 2s mà Regen đang ở CAO (2) -> chuyển về THẤP (1)
+            float accel = calculateAcceleration();
+            if (currentSpeedKmH < 12 || accel > 0.1f) {
                 if (currentRegenMode == 2) {
                     executeRegenChange(1, "Slow Speed < 12km/h (HIGH -> LOW)");
                 }
+                accelStartTime = 0;
             }
+//            else {
+//
+//                if (accel > 0.1f) {
+//                    if (accelStartTime == 0) accelStartTime = now;
+//                    if (now - accelStartTime >= 2000) {
+//                        if (currentRegenMode == 2) {
+//                            executeRegenChange(1, "Continuous Accel 2s (HIGH -> LOW)");
+//                        }
+//                        accelStartTime = 0;
+//                    }
+//                } else {
+//                    accelStartTime = 0;
+//                }
+//            }
+        } else {
+            accelStartTime = 0;
         }
         if (optionHighwayEnabled) {
             if (currentSpeedKmH >= 75) {
