@@ -1,19 +1,30 @@
 package com.vf5regenlauncher;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class MediaWidgetController {
     private static final String TAG = "MediaWidgetController";
     
+    private static final String PREF_MUSIC_PKG = "music_package_name";
+    private static final String DEFAULT_MUSIC_PKG = "com.syu.music";
+
     // Các Action gửi lệnh điều khiển nhạc ngược lại hệ thống ô tô ROM FYT
     public static final String NEXTMUSIC = "com.syu.music.next";
     public static final String PREVMUSIC = "com.syu.music.prev";
@@ -51,6 +62,10 @@ public class MediaWidgetController {
         View container = activity.findViewById(R.id.container_music_widget);
         if (container != null) {
             container.setOnClickListener(v -> openMusicApp());
+            container.setOnLongClickListener(v -> {
+                showAppPickerForMusic();
+                return true;
+            });
         }
 
         if (btnPrev != null) {
@@ -65,20 +80,55 @@ public class MediaWidgetController {
     }
 
     private void openMusicApp() {
+        String pkg = activity.getSharedPreferences("launcher_prefs", Context.MODE_PRIVATE)
+                .getString(PREF_MUSIC_PKG, DEFAULT_MUSIC_PKG);
         try {
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.setComponent(new android.content.ComponentName("com.syu.music", "com.syu.music.MAct"));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            activity.startActivity(intent);
+            Intent intent = activity.getPackageManager().getLaunchIntentForPackage(pkg);
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
+            } else {
+                // Fallback nếu không lấy được launch intent
+                Intent fallbackIntent = new Intent(Intent.ACTION_MAIN);
+                fallbackIntent.setPackage(pkg);
+                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(fallbackIntent);
+            }
         } catch (Throwable e) {
-            try {
-                Intent intent = activity.getPackageManager().getLaunchIntentForPackage("com.syu.music");
-                if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    activity.startActivity(intent);
-                }
-            } catch (Throwable ignored) {}
+            Log.e(TAG, "Cannot launch music app: " + pkg, e);
+            Toast.makeText(activity, "Không thể mở ứng dụng nhạc. Vui lòng chọn lại!", Toast.LENGTH_SHORT).show();
+            showAppPickerForMusic();
         }
+    }
+
+    private void showAppPickerForMusic() {
+        final PackageManager pm = activity.getPackageManager();
+        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> pkgAppsList = pm.queryIntentActivities(mainIntent, 0);
+
+        Collections.sort(pkgAppsList, (o1, o2) ->
+                o1.loadLabel(pm).toString().compareToIgnoreCase(o2.loadLabel(pm).toString()));
+
+        final List<String> appNames = new ArrayList<>();
+        final List<String> packageNames = new ArrayList<>();
+        for (ResolveInfo ri : pkgAppsList) {
+            appNames.add(ri.loadLabel(pm).toString());
+            packageNames.add(ri.activityInfo.packageName);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle("Chọn ứng dụng Trình phát nhạc");
+        builder.setItems(appNames.toArray(new CharSequence[0]), (dialog, which) -> {
+            String selectedPkg = packageNames.get(which);
+            activity.getSharedPreferences("launcher_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(PREF_MUSIC_PKG, selectedPkg)
+                    .apply();
+            Toast.makeText(activity, "Đã chọn ứng dụng Nhạc: " + appNames.get(which), Toast.LENGTH_SHORT).show();
+            openMusicApp();
+        });
+        builder.show();
     }
 
     private void sendMediaCommand(String action) {

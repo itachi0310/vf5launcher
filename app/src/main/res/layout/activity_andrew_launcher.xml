@@ -6,19 +6,11 @@
     android:orientation="vertical"
     android:weightSum="100">
 
-    <!-- Thanh trạng thái trên cùng (5%) -->
-    <include
-        layout="@layout/layout_launcher_top_bar"
-        android:id="@+id/layout_top_bar"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="5" />
-
-    <!-- Khu vực nội dung chính (85%) -->
+    <!-- Khu vực nội dung chính (87%) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="82"
+        android:layout_weight="87"
         android:orientation="horizontal"
         android:baselineAligned="false">
 
