@@ -344,9 +344,15 @@ boolean mapStarted =
                                 SystemProperties.set("sys.lsec.pip_show", "1");
                                 SystemProperties.set("sys.lsec.pip_mode", "1");
 
+                                WindowUtil.intent.putExtra("force_pip", true);
+                                WindowUtil.intent.putExtra("pip_mode", 1);
+
                                 SharedPreferences sp = LauncherApplication.sApp.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
                                 String savedRect = sp.getString(PREFS_RECT, "");
                                 if (!savedRect.isEmpty()) {
+                                    WindowUtil.intent.putExtra("pip_rect", savedRect);
+                                    WindowUtil.intent.putExtra("rect", savedRect);
+
                                     Intent i = new Intent("com.syu.action.PIP_RECT");
                                     i.putExtra("pip_rect", savedRect);
                                     i.putExtra("rect", savedRect);
