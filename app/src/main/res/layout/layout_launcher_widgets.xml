@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_widgets_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:weightSum="100"
     android:background="#0A0F1A">
 
-    <!-- 1. VÙNG CHỨA PIP MAP (Chiếm 65% của cột phải) -->
+    <!-- 1. VÙNG CHỨA PIP MAP (Chiếm 65% mặc định của cột phải) -->
     <FrameLayout
+        android:id="@+id/container_pip_wrapper"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="65"
@@ -36,6 +38,7 @@
 
     <!-- 2. VÙNG CHỨA 2 WIDGET TIỆN ÍCH (Chiếm 35% còn lại bên phải) -->
     <LinearLayout
+        android:id="@+id/layout_right_widgets"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="35"

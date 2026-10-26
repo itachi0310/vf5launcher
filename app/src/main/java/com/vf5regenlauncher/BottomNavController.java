@@ -64,6 +64,12 @@ public class BottomNavController implements CanbusConnector.CanbusDataListener {
     private void setupNavButtons() {
         View home = activity.findViewById(R.id.btn_nav_home);
         if (home != null) home.setOnClickListener(v -> {
+            if (activity instanceof AndrewLauncherActivity) {
+                AndrewLauncherActivity launcher = (AndrewLauncherActivity) activity;
+                if (launcher.getQuickBarController() != null) {
+                    launcher.getQuickBarController().restoreDefaultMapAndWidgets();
+                }
+            }
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_HOME);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

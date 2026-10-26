@@ -14,19 +14,26 @@
         android:orientation="horizontal"
         android:baselineAligned="false">
 
-        <!-- Cột TRÁI: Thông tin xe (Dashboard) (26%) -->
+        <!-- Cột TRÁI: Thông tin xe (Dashboard) (25%) -->
         <include
             layout="@layout/layout_launcher_dashboard"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="26" />
+            android:layout_weight="25" />
 
-        <!-- Cột PHẢI: Widgets & Apps (74%) -->
+        <!-- Cột GIỮA: Thanh 3 ứng dụng nhanh (5%) -->
+        <include
+            layout="@layout/layout_launcher_quick_bar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="5" />
+
+        <!-- Cột PHẢI: Widgets & Apps (70%) -->
         <include
             layout="@layout/layout_launcher_widgets"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="74" />
+            android:layout_weight="70" />
 
     </LinearLayout>
 

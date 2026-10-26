@@ -40,6 +40,11 @@ public class AndrewLauncherActivity extends AppCompatActivity {
     }
 
     public static boolean isMainScreen = true;
+    private QuickBarController quickBarController;
+
+    public QuickBarController getQuickBarController() {
+        return quickBarController;
+    }
 
     public AppEmbedManager getAppEmbedManager() {
         return appEmbedManager;
@@ -70,6 +75,7 @@ public class AndrewLauncherActivity extends AppCompatActivity {
         appEmbedManager = new AppEmbedManager(this);
         mediaWidgetController = new MediaWidgetController(this);
         weatherWidgetController = new WeatherWidgetController(this);
+        quickBarController = new QuickBarController(this);
 
         canbusConnector.addListener(dashboardController);
         canbusConnector.addListener(bottomNavController);
