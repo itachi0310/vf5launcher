@@ -13,6 +13,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.vf5regenlauncher.util.WindowUtil;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +37,11 @@ public class QuickBarController {
     }
 
     private void initViews() {
+        ImageView btnHome = activity.findViewById(R.id.btn_quick_home);
+        if (btnHome != null) {
+            btnHome.setOnClickListener(v -> restoreDefaultMapAndWidgets());
+        }
+
         slotViews[0] = activity.findViewById(R.id.btn_quick_app_1);
         slotViews[1] = activity.findViewById(R.id.btn_quick_app_2);
         slotViews[2] = activity.findViewById(R.id.btn_quick_app_3);
@@ -94,31 +101,38 @@ public class QuickBarController {
     }
 
     public void launchAppInExpandedPip(String packageName) {
-        AppEmbedManager embedManager = activity.getAppEmbedManager();
-        if (embedManager == null) return;
+        if (packageName == null || packageName.isEmpty()) return;
 
         // 1. Ẩn 2 Widget Thời tiết & Nhạc bên phải
         if (layoutRightWidgets != null) {
             layoutRightWidgets.setVisibility(View.GONE);
         }
 
-        // 2. Mở rộng khung PiP ra 100% chiều rộng cột phải
+        // 2. Mở rộng khung PiP ra 100% chiều rộng của khu vực bên phải
         if (containerPipWrapper != null) {
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
             params.weight = 100f;
             containerPipWrapper.setLayoutParams(params);
+            containerPipWrapper.requestLayout();
         }
 
-        // 3. Khởi chạy app trong PiP và cập nhật tọa độ mới
-        embedManager.launchApp(packageName);
-        if (containerPipWrapper != null) {
-            containerPipWrapper.post(() -> embedManager.updatePipRect());
-        }
-        Log.d(TAG, "Launched app in EXPANDED PiP: " + packageName);
+        // 3. Đợi layout hoàn tất đo kích thước mở rộng trước khi cập nhật PIP_RECT và khởi chạy app
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            AppEmbedManager embedManager = activity.getAppEmbedManager();
+            WindowUtil.AppPackageNmae = packageName;
+            WindowUtil.isMapStarted = false;
+
+            if (embedManager != null) {
+                embedManager.launchApp(packageName);
+            } else {
+                WindowUtil.startMapPip(packageName);
+            }
+            Log.d(TAG, "Launched app in EXPANDED PiP: " + packageName);
+        }, 150);
     }
 
     public void restoreDefaultMapAndWidgets() {
-        // 1. Hiện lại 2 Widget Thời tiết & Nhạc
+        // 1. Hiện lại 2 Widget Thời tiết & Nhạc bên phải
         if (layoutRightWidgets != null) {
             layoutRightWidgets.setVisibility(View.VISIBLE);
         }
@@ -128,19 +142,26 @@ public class QuickBarController {
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
             params.weight = 65f;
             containerPipWrapper.setLayoutParams(params);
+            containerPipWrapper.requestLayout();
         }
 
-        // 3. Cập nhật lại bản đồ mặc định
-        AppEmbedManager embedManager = activity.getAppEmbedManager();
-        if (embedManager != null) {
+        // 3. Đợi layout hoàn tất rồi khởi chạy lại bản đồ mặc định trong PiP
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            AppEmbedManager embedManager = activity.getAppEmbedManager();
             SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
             String defaultMap = sp.getString("default_map_package", "com.vietmap.vietmaplive");
-            embedManager.launchApp(defaultMap);
-            if (containerPipWrapper != null) {
-                containerPipWrapper.post(() -> embedManager.updatePipRect());
+
+            WindowUtil.AppPackageNmae = defaultMap;
+            WindowUtil.isMapStarted = false;
+
+            if (embedManager != null) {
+                embedManager.launchApp(defaultMap);
+            } else {
+                WindowUtil.startMapPip(defaultMap);
             }
-        }
-        Log.d(TAG, "Restored default map and right widgets layout");
+            Log.d(TAG, "Restored default map and right widgets layout");
+            Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
+        }, 150);
     }
 
     private void showAppPickerForSlot(final int slotIndex) {

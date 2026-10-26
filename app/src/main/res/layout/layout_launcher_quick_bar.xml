@@ -15,7 +15,29 @@
         android:clipToOutline="true"
         android:orientation="vertical"
         android:gravity="center"
-        android:weightSum="3">
+        android:weightSum="4">
+
+        <!-- Nút Home khôi phục giao diện mặc định -->
+        <ImageView
+            android:id="@+id/btn_quick_home"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_gravity="center"
+            android:padding="10dp"
+            android:src="@drawable/ic_home"
+            app:tint="#00E5FF"
+            android:scaleType="fitCenter"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Màn hình chính" />
+
+        <View
+            android:layout_width="20dp"
+            android:layout_height="0.5dp"
+            android:background="#33FFFFFF"
+            android:layout_gravity="center" />
 
         <!-- Slot 1 -->
         <ImageView
