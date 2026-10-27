@@ -102,66 +102,141 @@ public class QuickBarController {
 
     public void launchAppInExpandedPip(String packageName) {
         if (packageName == null || packageName.isEmpty()) return;
+        final String oldPackage = WindowUtil.AppPackageNmae;
+        final AppEmbedManager embedManager = activity.getAppEmbedManager();
 
-        // 1. Ẩn 2 Widget Thời tiết & Nhạc bên phải
-        if (layoutRightWidgets != null) {
-            layoutRightWidgets.setVisibility(View.GONE);
-        }
+        boolean alreadyOpened = AppEmbedManager.isAppInOpenedList(activity, packageName);
+        Log.d(TAG, "===> Select app: " + packageName + " | Already opened = " + alreadyOpened + " | oldPackage = " + oldPackage);
 
-        // 2. Mở rộng khung PiP ra 100% chiều rộng của khu vực bên phải
-        if (containerPipWrapper != null) {
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
-            params.weight = 100f;
-            containerPipWrapper.setLayoutParams(params);
-            containerPipWrapper.requestLayout();
-        }
+        if (!alreadyOpened) {
+            // CÁCH 1: CHƯA CÓ TRONG DANH SÁCH -> START MỚI
+            Log.d(TAG, "===> STARTING NEW APP IN PIP");
 
-        // 3. Đợi layout hoàn tất đo kích thước mở rộng trước khi cập nhật PIP_RECT và khởi chạy app
-        activity.getWindow().getDecorView().postDelayed(() -> {
-            AppEmbedManager embedManager = activity.getAppEmbedManager();
-            WindowUtil.AppPackageNmae = packageName;
-            WindowUtil.isMapStarted = false;
+            if (embedManager != null) embedManager.hidePip();
+            WindowUtil.removePip(null);
 
-            if (embedManager != null) {
-                embedManager.launchApp(packageName);
-            } else {
-                WindowUtil.startMapPip(packageName);
+            if (embedManager != null && oldPackage != null && !oldPackage.isEmpty() && !oldPackage.equals(packageName)) {
+                embedManager.killAppProcess(oldPackage);
             }
-            Log.d(TAG, "Launched app in EXPANDED PiP: " + packageName);
-        }, 150);
+
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.GONE);
+                if (containerPipWrapper != null) {
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
+                    params.weight = 100f;
+                    containerPipWrapper.setLayoutParams(params);
+                    containerPipWrapper.requestLayout();
+                }
+
+                activity.getWindow().getDecorView().postDelayed(() -> {
+                    WindowUtil.AppPackageNmae = packageName;
+                    WindowUtil.isMapStarted = false;
+                    AppEmbedManager.markAppOpened(packageName);
+
+                    if (embedManager != null) {
+                        embedManager.launchApp(packageName);
+                    } else {
+                        WindowUtil.startMapPip(packageName);
+                    }
+                }, 150);
+            }, 100);
+
+        } else {
+            // CÁCH 2: ĐÃ CÓ TRONG DANH SÁCH -> CHỈ RESUME LẠI
+            Log.d(TAG, "===> RESUMING ALREADY OPENED APP IN PIP");
+
+            if (embedManager != null) embedManager.hidePip();
+
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.GONE);
+                if (containerPipWrapper != null) {
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
+                    params.weight = 100f;
+                    containerPipWrapper.setLayoutParams(params);
+                    containerPipWrapper.requestLayout();
+                }
+
+                activity.getWindow().getDecorView().postDelayed(() -> {
+                    WindowUtil.AppPackageNmae = packageName;
+                    WindowUtil.isMapStarted = true;
+
+                    if (embedManager != null) {
+                        embedManager.resumeAppInPip(packageName);
+                    } else {
+                        WindowUtil.startMapPip(packageName);
+                    }
+                }, 150);
+            }, 100);
+        }
     }
 
     public void restoreDefaultMapAndWidgets() {
-        // 1. Hiện lại 2 Widget Thời tiết & Nhạc bên phải
-        if (layoutRightWidgets != null) {
-            layoutRightWidgets.setVisibility(View.VISIBLE);
-        }
+        SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+        final String defaultMap = sp.getString("default_map_package", "com.vietmap.vietmaplive");
+        final String oldPackage = WindowUtil.AppPackageNmae;
+        final AppEmbedManager embedManager = activity.getAppEmbedManager();
 
-        // 2. Khôi phục kích thước PiP về 65% mặc định
-        if (containerPipWrapper != null) {
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
-            params.weight = 65f;
-            containerPipWrapper.setLayoutParams(params);
-            containerPipWrapper.requestLayout();
-        }
+        boolean defaultMapOpened = AppEmbedManager.isAppInOpenedList(activity, defaultMap);
+        Log.d(TAG, "===> Select Home -> defaultMap=" + defaultMap + " | Already opened=" + defaultMapOpened + " | oldPackage=" + oldPackage);
 
-        // 3. Đợi layout hoàn tất rồi khởi chạy lại bản đồ mặc định trong PiP
-        activity.getWindow().getDecorView().postDelayed(() -> {
-            AppEmbedManager embedManager = activity.getAppEmbedManager();
-            SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-            String defaultMap = sp.getString("default_map_package", "com.vietmap.vietmaplive");
+        if (!defaultMapOpened) {
+            // CHƯA CÓ TRONG DANH SÁCH -> START MỚI BẢN ĐỒ MẶC ĐỊNH
+            if (embedManager != null) embedManager.hidePip();
+            WindowUtil.removePip(null);
 
-            WindowUtil.AppPackageNmae = defaultMap;
-            WindowUtil.isMapStarted = false;
-
-            if (embedManager != null) {
-                embedManager.launchApp(defaultMap);
-            } else {
-                WindowUtil.startMapPip(defaultMap);
+            if (embedManager != null && oldPackage != null && !oldPackage.isEmpty() && !oldPackage.equals(defaultMap)) {
+                embedManager.killAppProcess(oldPackage);
             }
-            Log.d(TAG, "Restored default map and right widgets layout");
-            Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
-        }, 150);
+
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.VISIBLE);
+                if (containerPipWrapper != null) {
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
+                    params.weight = 65f;
+                    containerPipWrapper.setLayoutParams(params);
+                    containerPipWrapper.requestLayout();
+                }
+
+                activity.getWindow().getDecorView().postDelayed(() -> {
+                    WindowUtil.AppPackageNmae = defaultMap;
+                    WindowUtil.isMapStarted = false;
+                    AppEmbedManager.markAppOpened(defaultMap);
+
+                    if (embedManager != null) {
+                        embedManager.launchApp(defaultMap);
+                    } else {
+                        WindowUtil.startMapPip(defaultMap);
+                    }
+                    Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
+                }, 150);
+            }, 100);
+
+        } else {
+            // ĐÃ CÓ TRONG DANH SÁCH -> CHỈ RESUME LẠI BẢN ĐỒ MẶC ĐỊNH
+            if (embedManager != null) embedManager.hidePip();
+
+            activity.getWindow().getDecorView().postDelayed(() -> {
+                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.VISIBLE);
+                if (containerPipWrapper != null) {
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
+                    params.weight = 65f;
+                    containerPipWrapper.setLayoutParams(params);
+                    containerPipWrapper.requestLayout();
+                }
+
+                activity.getWindow().getDecorView().postDelayed(() -> {
+                    WindowUtil.AppPackageNmae = defaultMap;
+                    WindowUtil.isMapStarted = true;
+
+                    if (embedManager != null) {
+                        embedManager.resumeAppInPip(defaultMap);
+                    } else {
+                        WindowUtil.startMapPip(defaultMap);
+                    }
+                    Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
+                }, 150);
+            }, 100);
+        }
     }
 
     private void showAppPickerForSlot(final int slotIndex) {

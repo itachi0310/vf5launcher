@@ -14,16 +14,24 @@ import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.FrameLayout;
 
+import com.vf5regenlauncher.util.AppStateManager;
 import com.vf5regenlauncher.util.WindowUtil;
 import com.vf5regenlauncher.util.android.os.SystemProperties;
 
 import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class AppEmbedManager {
     private static final String TAG = "AppEmbedManager";
     public static final String PREFS_RECT = "map_pip_rect";
+    public static final String PREFS_RECT_DEFAULT = "map_pip_rect_default";
+    public static final String PREFS_RECT_EXPANDED = "map_pip_rect_expanded";
+
+    private static final Set<String> openedPipApps = new HashSet<>();
+
     private final Activity activity;
     private final FrameLayout container;
     private String currentPackage;
@@ -159,9 +167,17 @@ public class AppEmbedManager {
         lastRectSent = rect;
         Log.d(TAG, "updatePipRect forced sending: " + rect);
 
-        // Lưu rect vào SharedPreferences để khôi phục khi restart
         SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
-        sp.edit().putString(PREFS_RECT, rect).apply();
+        android.view.View rightWidgets = activity.findViewById(R.id.layout_right_widgets);
+        boolean isExpanded = (rightWidgets != null && rightWidgets.getVisibility() == android.view.View.GONE);
+
+        if (isExpanded) {
+            sp.edit().putString(PREFS_RECT_EXPANDED, rect).putString(PREFS_RECT, rect).apply();
+            Log.d(TAG, "Saved EXPANDED PiP Rect: " + rect);
+        } else {
+            sp.edit().putString(PREFS_RECT_DEFAULT, rect).putString(PREFS_RECT, rect).apply();
+            Log.d(TAG, "Saved DEFAULT PiP Rect: " + rect);
+        }
 
         // 1. Ghi thuộc tính hệ thống ép ROM định tuyến PiP
         setSystemProperty("sys.lsec.pip_rect", rect);
@@ -279,7 +295,90 @@ public class AppEmbedManager {
 
     public void launchApp(String packageName) {
         this.currentPackage = packageName;
+        WindowUtil.AppPackageNmae = packageName;
+        markAppOpened(packageName);
         setSystemProperty("persist.launcher.packagename", packageName);
         launchMap();
+    }
+
+    public void resumeAppInPip(String packageName) {
+        this.currentPackage = packageName;
+        WindowUtil.AppPackageNmae = packageName;
+        WindowUtil.isMapStarted = true;
+        markAppOpened(packageName);
+        setSystemProperty("persist.launcher.packagename", packageName);
+
+        updatePipRect();
+        setSystemProperty("sys.lsec.force_pip", "true");
+        setSystemProperty("sys.lsec.pip_show", "1");
+        setSystemProperty("sys.lsec.pip_mode", "1");
+
+        SharedPreferences sp = activity.getSharedPreferences("driving_prefs", Context.MODE_PRIVATE);
+        String savedRect = sp.getString(PREFS_RECT, "");
+        if (!savedRect.isEmpty()) {
+            Intent i = new Intent("com.syu.action.PIP_RECT");
+            i.putExtra("pip_rect", savedRect);
+            i.putExtra("rect", savedRect);
+            i.putExtra("show", true);
+            activity.sendBroadcast(i);
+            activity.sendBroadcast(new Intent("com.syu.pip.show").putExtra("show", true).putExtra("packagename", packageName));
+            activity.sendBroadcast(new Intent("com.syu.pip.update").putExtra("rect", savedRect));
+        }
+
+        try {
+            Object service = ActivityManager.class.getMethod("getService").invoke(null);
+            if (service != null) {
+                Method setPinnedStackVisible = Class.forName("android.app.IActivityManager")
+                        .getMethod("setPinnedStackVisible", boolean.class);
+                setPinnedStackVisible.invoke(service, true);
+            }
+            Log.d(TAG, "✓ Resumed opened app in PiP without restart: " + packageName);
+        } catch (Throwable e) {
+            Log.e(TAG, "Failed to resume app in PiP, falling back to launchMap", e);
+            launchMap();
+        }
+    }
+
+    public static boolean isAppInOpenedList(Context context, String packageName) {
+        if (packageName == null || packageName.isEmpty()) return false;
+        if (openedPipApps.contains(packageName)) return true;
+
+        if (AppStateManager.isAppStarted(context, packageName) || WindowUtil.isAppRunning(context, packageName)) {
+            openedPipApps.add(packageName);
+            return true;
+        }
+        return false;
+    }
+
+    public static void markAppOpened(String packageName) {
+        if (packageName != null && !packageName.isEmpty()) {
+            openedPipApps.add(packageName);
+        }
+    }
+
+    public static void markAppClosed(String packageName) {
+        if (packageName != null) {
+            openedPipApps.remove(packageName);
+        }
+    }
+
+    @android.annotation.SuppressLint("MissingPermission")
+    public void killAppProcess(String packageName) {
+        if (packageName == null || packageName.isEmpty()) return;
+        Log.d(TAG, "Stopping/Killing process for: " + packageName);
+        markAppClosed(packageName);
+        try {
+            Runtime.getRuntime().exec("am force-stop " + packageName);
+        } catch (Exception e) {
+            Log.w(TAG, "am force-stop failed for " + packageName, e);
+        }
+        try {
+            ActivityManager am = (ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                am.killBackgroundProcesses(packageName);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "killBackgroundProcesses failed for " + packageName, e);
+        }
     }
 }
