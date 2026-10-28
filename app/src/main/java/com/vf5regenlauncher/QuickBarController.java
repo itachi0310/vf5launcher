@@ -105,69 +105,42 @@ public class QuickBarController {
         final String oldPackage = WindowUtil.AppPackageNmae;
         final AppEmbedManager embedManager = activity.getAppEmbedManager();
 
-        boolean alreadyOpened = AppEmbedManager.isAppInOpenedList(activity, packageName);
-        Log.d(TAG, "===> Select app: " + packageName + " | Already opened = " + alreadyOpened + " | oldPackage = " + oldPackage);
+        Log.d(TAG, "===> Selecting app for expanded PiP: " + packageName + " (oldPackage=" + oldPackage + ")");
 
-        if (!alreadyOpened) {
-            // CÁCH 1: CHƯA CÓ TRONG DANH SÁCH -> START MỚI
-            Log.d(TAG, "===> STARTING NEW APP IN PIP");
+        // 1. Gán ứng dụng mới làm app PiP hiện tại
+        WindowUtil.AppPackageNmae = packageName;
 
-            if (embedManager != null) embedManager.hidePip();
-            WindowUtil.removePip(null);
-
-            if (embedManager != null && oldPackage != null && !oldPackage.isEmpty() && !oldPackage.equals(packageName)) {
+        // 2. Nếu chuyển từ app cũ khác -> stop/kill app cũ nếu không thuộc danh sách phím tắt mở rộng
+        if (embedManager != null && oldPackage != null && !oldPackage.isEmpty() && !oldPackage.equals(packageName)) {
+            boolean isOldAppOpened = AppEmbedManager.isAppInOpenedList(activity, oldPackage);
+            if (!isOldAppOpened) {
                 embedManager.killAppProcess(oldPackage);
             }
-
-            activity.getWindow().getDecorView().postDelayed(() -> {
-                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.GONE);
-                if (containerPipWrapper != null) {
-                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
-                    params.weight = 100f;
-                    containerPipWrapper.setLayoutParams(params);
-                    containerPipWrapper.requestLayout();
-                }
-
-                activity.getWindow().getDecorView().postDelayed(() -> {
-                    WindowUtil.AppPackageNmae = packageName;
-                    WindowUtil.isMapStarted = false;
-                    AppEmbedManager.markAppOpened(packageName);
-
-                    if (embedManager != null) {
-                        embedManager.launchApp(packageName);
-                    } else {
-                        WindowUtil.startMapPip(packageName);
-                    }
-                }, 150);
-            }, 100);
-
-        } else {
-            // CÁCH 2: ĐÃ CÓ TRONG DANH SÁCH -> CHỈ RESUME LẠI
-            Log.d(TAG, "===> RESUMING ALREADY OPENED APP IN PIP");
-
-            if (embedManager != null) embedManager.hidePip();
-
-            activity.getWindow().getDecorView().postDelayed(() -> {
-                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.GONE);
-                if (containerPipWrapper != null) {
-                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
-                    params.weight = 100f;
-                    containerPipWrapper.setLayoutParams(params);
-                    containerPipWrapper.requestLayout();
-                }
-
-                activity.getWindow().getDecorView().postDelayed(() -> {
-                    WindowUtil.AppPackageNmae = packageName;
-                    WindowUtil.isMapStarted = true;
-
-                    if (embedManager != null) {
-                        embedManager.resumeAppInPip(packageName);
-                    } else {
-                        WindowUtil.startMapPip(packageName);
-                    }
-                }, 150);
-            }, 100);
         }
+
+        // 3. Ẩn 2 Widget Thời tiết & Nhạc bên phải
+        if (layoutRightWidgets != null) {
+            layoutRightWidgets.setVisibility(View.GONE);
+        }
+
+        // 4. Mở rộng khung PiP ra 100% chiều rộng của khu vực bên phải
+        if (containerPipWrapper != null) {
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
+            params.weight = 100f;
+            containerPipWrapper.setLayoutParams(params);
+            containerPipWrapper.requestLayout();
+        }
+
+        // 5. Gán và Khởi chạy/Resume ứng dụng đã chọn vào vùng PiP thông qua WindowUtil.openPip
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            AppEmbedManager.markAppOpened(packageName);
+            if (embedManager != null) {
+                embedManager.launchApp(packageName);
+            } else {
+                WindowUtil.startMapPip(packageName);
+            }
+            Log.d(TAG, "✓ Successfully assigned & launched/resumed in EXPANDED PiP: " + packageName);
+        }, 150);
     }
 
     public void restoreDefaultMapAndWidgets() {
@@ -176,67 +149,43 @@ public class QuickBarController {
         final String oldPackage = WindowUtil.AppPackageNmae;
         final AppEmbedManager embedManager = activity.getAppEmbedManager();
 
-        boolean defaultMapOpened = AppEmbedManager.isAppInOpenedList(activity, defaultMap);
-        Log.d(TAG, "===> Select Home -> defaultMap=" + defaultMap + " | Already opened=" + defaultMapOpened + " | oldPackage=" + oldPackage);
+        Log.d(TAG, "===> Restoring Default Map in PiP: " + defaultMap + " (oldPackage=" + oldPackage + ")");
 
-        if (!defaultMapOpened) {
-            // CHƯA CÓ TRONG DANH SÁCH -> START MỚI BẢN ĐỒ MẶC ĐỊNH
-            if (embedManager != null) embedManager.hidePip();
-            WindowUtil.removePip(null);
+        // 1. Gán ứng dụng bản đồ mặc định làm app PiP hiện tại
+        WindowUtil.AppPackageNmae = defaultMap;
 
-            if (embedManager != null && oldPackage != null && !oldPackage.isEmpty() && !oldPackage.equals(defaultMap)) {
+        // 2. Stop/kill app cũ nếu không phải bản đồ mặc định
+        if (embedManager != null && oldPackage != null && !oldPackage.isEmpty() && !oldPackage.equals(defaultMap)) {
+            boolean isOldAppOpened = AppEmbedManager.isAppInOpenedList(activity, oldPackage);
+            if (!isOldAppOpened) {
                 embedManager.killAppProcess(oldPackage);
             }
-
-            activity.getWindow().getDecorView().postDelayed(() -> {
-                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.VISIBLE);
-                if (containerPipWrapper != null) {
-                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
-                    params.weight = 65f;
-                    containerPipWrapper.setLayoutParams(params);
-                    containerPipWrapper.requestLayout();
-                }
-
-                activity.getWindow().getDecorView().postDelayed(() -> {
-                    WindowUtil.AppPackageNmae = defaultMap;
-                    WindowUtil.isMapStarted = false;
-                    AppEmbedManager.markAppOpened(defaultMap);
-
-                    if (embedManager != null) {
-                        embedManager.launchApp(defaultMap);
-                    } else {
-                        WindowUtil.startMapPip(defaultMap);
-                    }
-                    Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
-                }, 150);
-            }, 100);
-
-        } else {
-            // ĐÃ CÓ TRONG DANH SÁCH -> CHỈ RESUME LẠI BẢN ĐỒ MẶC ĐỊNH
-            if (embedManager != null) embedManager.hidePip();
-
-            activity.getWindow().getDecorView().postDelayed(() -> {
-                if (layoutRightWidgets != null) layoutRightWidgets.setVisibility(View.VISIBLE);
-                if (containerPipWrapper != null) {
-                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
-                    params.weight = 65f;
-                    containerPipWrapper.setLayoutParams(params);
-                    containerPipWrapper.requestLayout();
-                }
-
-                activity.getWindow().getDecorView().postDelayed(() -> {
-                    WindowUtil.AppPackageNmae = defaultMap;
-                    WindowUtil.isMapStarted = true;
-
-                    if (embedManager != null) {
-                        embedManager.resumeAppInPip(defaultMap);
-                    } else {
-                        WindowUtil.startMapPip(defaultMap);
-                    }
-                    Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
-                }, 150);
-            }, 100);
         }
+
+        // 3. Hiện lại 2 Widget Thời tiết & Nhạc bên phải
+        if (layoutRightWidgets != null) {
+            layoutRightWidgets.setVisibility(View.VISIBLE);
+        }
+
+        // 4. Thu nhỏ khung PiP về 65% mặc định
+        if (containerPipWrapper != null) {
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) containerPipWrapper.getLayoutParams();
+            params.weight = 65f;
+            containerPipWrapper.setLayoutParams(params);
+            containerPipWrapper.requestLayout();
+        }
+
+        // 5. Gán và Khởi chạy/Resume bản đồ mặc định vào vùng PiP thông qua WindowUtil.openPip
+        activity.getWindow().getDecorView().postDelayed(() -> {
+            AppEmbedManager.markAppOpened(defaultMap);
+            if (embedManager != null) {
+                embedManager.launchApp(defaultMap);
+            } else {
+                WindowUtil.startMapPip(defaultMap);
+            }
+            Toast.makeText(activity, "Đã khôi phục giao diện mặc định", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "✓ Successfully restored default map in PiP: " + defaultMap);
+        }, 150);
     }
 
     private void showAppPickerForSlot(final int slotIndex) {
